@@ -1,6 +1,22 @@
 ifeq ($(CONFIG_OF),y)
 
-include $(srctree)/arch/arm64/boot/dts/qcom/Makefile.board
+dtb-$(CONFIG_ARCH_MSM8916) += 	huawei_rio_al00_va.dtb \
+	huawei_rio_al00_vb.dtb \
+	huawei_rio_al00_vb3.0.dtb \
+	huawei_rio_cl00_va.dtb \
+	huawei_rio_cl00_vb.dtb \
+	huawei_rio_cl00_vb3.0.dtb \
+	huawei_rio_cl00_vc.dtb \
+	huawei_rio_cl00_vc3.0.dtb \
+	huawei_rio_l01_va.dtb \
+	huawei_rio_l01_vb.dtb \
+	huawei_rio_l01_vb3.0.dtb \
+	huawei_rio_l02_va.dtb \
+	huawei_rio_l02_va3.0.dtb \
+	huawei_rio_l03_va.dtb \
+	huawei_rio_l03_va3.0.dtb \
+	huawei_rio_tl00_va.dtb \
+	huawei_rio_tl00_va3.0.dtb
 
 dtb-$(CONFIG_ARCH_MSM8974) += msm8974-v1-cdp.dtb \
 	msm8974-v1-fluid.dtb \

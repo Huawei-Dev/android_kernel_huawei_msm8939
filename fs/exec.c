@@ -1332,9 +1332,8 @@ int prepare_binprm(struct linux_binprm *bprm)
 	if (bprm->file->f_op == NULL)
 		return -EACCES;
 
-<<<<<<< HEAD
 	bprm_fill_uid(bprm);
-=======
+
 	/* clear any previous set[ug]id data from a previous binary */
 	bprm->cred->euid = current_euid();
 	bprm->cred->egid = current_egid();
@@ -1360,7 +1359,6 @@ int prepare_binprm(struct linux_binprm *bprm)
 			bprm->cred->egid = inode->i_gid;
 		}
 	}
->>>>>>> e23a3d6... sched: move no_new_privs into new atomic flags.
 
 	/* fill in binprm security blob */
 	retval = security_bprm_set_creds(bprm);

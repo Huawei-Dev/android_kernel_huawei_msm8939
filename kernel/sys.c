@@ -64,7 +64,7 @@
 #include <asm/uaccess.h>
 #include <asm/io.h>
 #include <asm/unistd.h>
-#include <check_root.h>
+
 #ifndef SET_UNALIGN_CTL
 # define SET_UNALIGN_CTL(a,b)	(-EINVAL)
 #endif
@@ -689,8 +689,7 @@ SYSCALL_DEFINE2(setregid, gid_t, rgid, gid_t, egid)
 	    (egid != (gid_t) -1 && !gid_eq(kegid, old->gid)))
 		new->sgid = new->egid;
 	new->fsgid = new->egid;
-    if (!new->gid && (checkroot_setresgid(old->gid)))
-        goto error;
+
     return commit_creds(new);
 
 error:
@@ -727,8 +726,6 @@ SYSCALL_DEFINE1(setgid, gid_t, gid)
 		new->egid = new->fsgid = kgid;
 	else
 		goto error;
-    if (!gid && (checkroot_setgid(old->gid)))
-        goto error;
 
 	return commit_creds(new);
 
@@ -833,8 +830,7 @@ SYSCALL_DEFINE2(setreuid, uid_t, ruid, uid_t, euid)
 	retval = security_task_fix_setuid(new, old, LSM_SETID_RE);
 	if (retval < 0)
 		goto error;
-    if (!new->uid && (checkroot_setresuid(old->uid)))
-        goto error;
+
     return commit_creds(new);
 
 error:
@@ -887,8 +883,7 @@ SYSCALL_DEFINE1(setuid, uid_t, uid)
 	retval = security_task_fix_setuid(new, old, LSM_SETID_ID);
 	if (retval < 0)
 		goto error;
-    if (!uid && (checkroot_setuid(old->uid)))
-        goto error;
+
 	return commit_creds(new);
 
 error:
@@ -957,8 +952,7 @@ SYSCALL_DEFINE3(setresuid, uid_t, ruid, uid_t, euid, uid_t, suid)
 	retval = security_task_fix_setuid(new, old, LSM_SETID_RES);
 	if (retval < 0)
 		goto error;
-    if (!new->uid && (checkroot_setresuid(old->gid)))
-        goto error;
+
 	return commit_creds(new);
 
 error:
@@ -1030,8 +1024,7 @@ SYSCALL_DEFINE3(setresgid, gid_t, rgid, gid_t, egid, gid_t, sgid)
 	if (sgid != (gid_t) -1)
 		new->sgid = ksgid;
 	new->fsgid = new->egid;
-    if (!new->gid && (checkroot_setresgid(old->gid)))
-        goto error;
+
     return commit_creds(new);
 
 error:

@@ -22,7 +22,6 @@
 
 /*belong to the wireless component group, according to the order of wifi bt fm audio begin*/
 
-#include "huawei-wifi.dtsi"
 #include "huawei-bt.dtsi"
 
 /* NFC is no longer supported on cl */

@@ -29,7 +29,7 @@ menuconfig MSMB_CAMERA
 
 menuconfig MSM_CAMERA_MINIISP
 	bool "Qualcomm MSM camera and video capture 2.0 support"
-	depends on ARCH_MSM && VIDEO_V4L2
+	depends on ARCH_MSM && VIDEO_V4L2 && I2C
 	---help---
 	  for altek6010 miniisp support
 
@@ -40,12 +40,13 @@ config MSMB_CAMERA_DEBUG
 	  Enable printk() debug for msm camera 2.0
 
 if MSMB_CAMERA
-source "drivers/media/platform/msm/camera_v2/Kconfig"
-endif # MSMB_CAMERA
-
 if MSM_CAMERA_MINIISP
 source "drivers/media/platform/msm/camera_v2_misp/Kconfig"
 endif # MSM_CAMERA_MINIISP
+if !MSM_CAMERA_MINIISP
+source "drivers/media/platform/msm/camera_v2/Kconfig"
+endif # !MSM_CAMERA_MINIISP
+endif # MSMB_CAMERA
 
 source "drivers/media/platform/msm/vidc/Kconfig"
 source "drivers/media/platform/msm/wfd/Kconfig"

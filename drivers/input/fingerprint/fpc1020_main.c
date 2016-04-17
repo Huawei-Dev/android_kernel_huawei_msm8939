@@ -26,6 +26,11 @@
 #include <linux/of.h>
 #include <linux/sort.h>
 #include <misc/app_info.h>
+
+#include <linux/irq.h>
+#include <linux/irqdesc.h>
+#define FPC_IRQS_PENDING 0x00000200
+
 #include "fpc1020.h"
 #include "fpc1020_common.h"
 #include "fpc1020_regs.h"
@@ -775,8 +780,20 @@ static int  fpc1020_remove(struct spi_device *spi)
 static int fpc1020_suspend(struct device *dev)
 {
     fpc1020_data_t *fpc1020 = dev_get_drvdata(dev);
+    struct irq_desc *desc = irq_to_desc((unsigned int)fpc1020->irq);
+    int error = 0;
 
     fpc_log_info("ENTER!\n");
+
+    if (desc) {
+        if (unlikely(desc->core_internal_state__do_not_mess_with_it & FPC_IRQS_PENDING)) {
+            fpc_log_err("unexpected irq pending, do reset!\n");
+            error = fpc1020_reset(fpc1020);
+            if (error) {
+                fpc_log_err("reset for unexpected irq pending failed, pls check!\n");
+            }
+        }
+    }
 
     if (device_may_wakeup(&fpc1020->spi->dev))
         enable_irq_wake(fpc1020->irq);

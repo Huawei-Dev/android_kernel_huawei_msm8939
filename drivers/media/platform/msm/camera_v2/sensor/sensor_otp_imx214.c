@@ -1,6 +1,7 @@
 /*******************************************************************
   Copyright (C), 1988-1999, Huawei Tech. Co., Ltd.
   File name         : sensor_otp_imx214.c
+  Author            : w00345499
   Version           : Initial Draft
   Date              : 2015/07/16
   Description       : this file contains the functions to detect and read
@@ -9,6 +10,7 @@
             imx214_otp_func
   History           :
   1.Date          : 2015/07/16
+    Author        : w00345499
     Modification  : Created File
 ********************************************************************/
 #define HW_CMR_LOG_TAG "sensor_otp_imx214"
@@ -49,10 +51,9 @@
 #define IMX214_FOXCONN_MODULE_VENDOR_ID  0x02
 #define IMX214_OFILM_MODULE_VENDOR_ID 0x06
 #define IMX214_MODULE_HUAWEI_ID          0x9c//23060156
-
-#define IMX214_SUNNY_MODULE_VCM_OFFSET    100
-#define IMX214_FOXCONN_MODULE_VCM_OFFSET  100
-#define IMX214_OFILM_MODULE_VCM_OFFSET    100
+#define IMX214_SUNNY_MODULE_VCM_OFFSET    200
+#define IMX214_FOXCONN_MODULE_VCM_OFFSET  170
+#define IMX214_OFILM_MODULE_VCM_OFFSET    140
 #define IMX214_MODULE_AF_END_MAX 1023
 
 #define DIGITAL_GAIN_CALC_BASE 0x1000

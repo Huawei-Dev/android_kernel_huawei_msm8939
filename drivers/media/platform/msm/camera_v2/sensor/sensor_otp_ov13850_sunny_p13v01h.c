@@ -1,6 +1,7 @@
 /************************************************************
   Copyright (C), 1988-1999, Huawei Tech. Co., Ltd.
   FileName: sensor_otp_ov13850_sunny_p13v01h.c
+  Author:  jwx206032
   Version :Initial Draft
   Date: 2014/07/08
   Description:    this file contion several functions to detect otp_ov5648 properties
@@ -8,6 +9,7 @@
   History:
    History        :
    1.Date        : 2014/07/08
+   Author        : jwx206032
    Modification : Created function
 ***********************************************************/
 

@@ -1,4 +1,3 @@
-
 config HUAWEI_DRIVERS
 	bool "huawei drivers"
 	default y

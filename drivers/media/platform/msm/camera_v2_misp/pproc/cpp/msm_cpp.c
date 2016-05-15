@@ -12,6 +12,7 @@
 
 #define pr_fmt(fmt) "MSM-CPP %s:%d " fmt, __func__, __LINE__
 
+
 #include <linux/delay.h>
 #include <linux/clk.h>
 #include <linux/firmware.h>
@@ -67,6 +68,7 @@
 #define STRIPE_BASE_FW_1_6_0	464
 #define STRIPE_BASE_FW_1_8_0	493
 
+
 /* dump the frame command before writing to the hardware */
 #define  MSM_CPP_DUMP_FRM_CMD 0
 
@@ -117,6 +119,8 @@ static struct msm_bus_vectors msm_cpp_pong_vectors[] = {
 		.ib  = 0,
 	},
 };
+
+
 
 static struct msm_bus_paths msm_cpp_bus_client_config[] = {
 	{
@@ -274,6 +278,7 @@ static int get_clock_index(const char *clk_name)
 	}
 	return -EINVAL;
 }
+
 
 static int msm_cpp_notify_frame_done(struct cpp_device *cpp_dev,
 	uint8_t put_buf);
@@ -1406,6 +1411,7 @@ static int msm_cpp_dump_frame_cmd(struct msm_cpp_frame_info_t *frame_info)
 }
 #endif
 
+
 static void msm_cpp_do_timeout_work(struct work_struct *work)
 {
 
@@ -2390,6 +2396,7 @@ static long msm_cpp_subdev_fops_ioctl(struct file *file, unsigned int cmd,
 {
 	return video_usercopy(file, cmd, arg, msm_cpp_subdev_do_ioctl);
 }
+
 
 #ifdef CONFIG_COMPAT
 static struct msm_cpp_frame_info_t *get_64bit_cpp_frame_from_compat(

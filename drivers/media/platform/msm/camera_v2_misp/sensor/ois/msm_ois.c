@@ -268,6 +268,7 @@ static int32_t msm_ois_mag_test(struct msm_ois_ctrl_t *o_ctrl, struct msm_ois_cf
     return ret;
 }
 
+
 static int32_t msm_ois_control(struct msm_ois_ctrl_t *o_ctrl,
 	struct msm_ois_set_info_t *set_info)
 {
@@ -288,6 +289,7 @@ static int32_t msm_ois_control(struct msm_ois_ctrl_t *o_ctrl,
 			set_info->ois_params.i2c_addr;
 	}
 	o_ctrl->i2c_client.addr_type = MSM_CAMERA_I2C_WORD_ADDR;
+
 
 	if (set_info->ois_params.setting_size > 0 &&
 		set_info->ois_params.setting_size

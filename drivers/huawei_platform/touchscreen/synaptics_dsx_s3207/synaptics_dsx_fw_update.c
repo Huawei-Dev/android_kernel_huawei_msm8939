@@ -34,7 +34,7 @@
 #include <misc/app_info.h>
 #endif /*CONFIG_APP_INFO*/
 #ifdef CONFIG_HUAWEI_DSM
-#include <linux/dsm_pub.h>
+#include <dsm/dsm_pub.h>
 #endif/*CONFIG_HUAWEI_DSM*/
 #include "synaptics_dsx_esd.h"
 static char touch_info[50] = {0};
@@ -361,6 +361,7 @@ ssize_t synaptics_dsm_record_fw_err_info( int err_numb )
 	total_size += size;
 
 	/* test whether BL is ok */
+
 
 	return total_size;
 
@@ -1507,10 +1508,15 @@ static char * get_cof_module_name(u8 module_id)
 	{
 		return "lensone";
 	}
+	else if (0 == strcasecmp(product_id, FW_GIS_STR))
+	{
+		return "gis";
+	}
 	else
 	{
 		return "unknow";
 	}
+
 
 }
 

@@ -227,6 +227,7 @@ struct synaptics_rmi4_device_info {
  * @irq_enable: pointer to irq enable function
  */
 
+
 #ifdef CONFIG_HUAWEI_KERNEL
 #define F54_ANALOG_CTRL13_OFFSET 16
 #define F11_2D_CTRL92_OFFSET 45

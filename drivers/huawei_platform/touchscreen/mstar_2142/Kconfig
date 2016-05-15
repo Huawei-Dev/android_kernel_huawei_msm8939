@@ -1,4 +1,3 @@
-
 #MSG2138_GC
 config MSG2138_GC
 	tristate "MSG2138_GC Touchscreen Driver"
@@ -20,4 +19,3 @@ config MSG2138_SCAP_TEST
 	  Say Y here if you have a MSG2138_SCAP_TEST touchscreen.
 	  If unsure, say N.
 	  To compile this driver as a module, choose M here.
-

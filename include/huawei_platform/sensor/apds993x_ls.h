@@ -207,6 +207,7 @@ struct apds993x_platform_data {
 #define CMD_CLR_ALS_INT		0xE6
 #define CMD_CLR_PS_ALS_INT	0xE7
 
+
 /* Register Value define : ATIME */
 /*in 8916,we use APDS993X_100MS_ADC_TIME*/
 #define APDS993X_100MS_ADC_TIME	0xDB  /* 100.64ms integration time */
@@ -255,6 +256,7 @@ struct apds993x_platform_data {
 #define APDS993X_AGAIN_8X_LUXCALCULATION	8  /* 8X ALS GAIN */
 #define APDS993X_AGAIN_16X_LUXCALCULATION	16  /* 16X ALS GAIN */
 #define APDS993X_AGAIN_120X_LUXCALCULATION	120  /* 120X ALS GAIN */
+
 
 /* Register Value define : CONTROL */
 #define APDS993X_AGAIN_1X	0x00  /* 1X ALS GAIN */

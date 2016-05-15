@@ -38,7 +38,7 @@
 #include	<linux/regulator/consumer.h>
 #include	<linux/of_gpio.h>
 #include	<linux/sensors.h>
-#include	<linux/dsm_pub.h>
+#include	<dsm/dsm_pub.h>
 #include	<huawei_platform/sensor/kionix_accel.h>
 #include	<huawei_platform/sensor/hw_sensor_info.h>
 
@@ -95,6 +95,7 @@ static inline bool exception_condition(int x, int y,int z,struct gsensor_test_ex
 			) ? true : false;
 }
 
+
 /**
 *	print main registers and xyz vaules
 */
@@ -136,6 +137,7 @@ static void dump_regs_xyz_values(struct work_struct *work)
 
 }
 
+
 /*
 * if i2c transfer error, we check sda/scl value and regulator's value
 */
@@ -157,6 +159,7 @@ static int kx_gs_dump_i2c_exception_status(struct kionix_accel_driver *acceld, i
 
 	return 0;
 }
+
 
 /**
  * func - kx_gs_check_exception
@@ -244,6 +247,7 @@ static int kx_gs_check_exception(int *xyz, struct kionix_accel_driver *acceld )
 	}
 	return 0;
 }
+
 
 /**
  * func - exception_2s_timer_handler
@@ -361,6 +365,7 @@ static void kx_gs_exit_excep_timer(struct kionix_accel_driver *acceld)
 	del_timer_sync(&acceld->gsensor_excep_timer);
 }
 
+
 /**
  * func - gsensor_read_i2c_err_info
  *
@@ -444,6 +449,7 @@ static void gsensor_read_register_info(struct kionix_accel_driver *acceld,bool a
 	}
 
 }
+
 
 /**
  * func - after read sda/scl, vdd/vddio value, and report info to dsm server.
@@ -654,6 +660,7 @@ int register_kx023_dsm_operations(struct kionix_accel_driver *acceld)
 	return 0;
 }
 
+
 void unregister_kx023_dsm_operations(struct kionix_accel_driver *acceld)
 {
 	kfree(acceld->dsm_buf);
@@ -666,4 +673,6 @@ void unregister_kx023_dsm_operations(struct kionix_accel_driver *acceld)
 }
 
 #endif
+
+
 

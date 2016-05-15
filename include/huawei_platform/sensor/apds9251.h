@@ -34,6 +34,7 @@
 #define APDS9251_VIO_MIN_UV  1750000
 #define APDS9251_VIO_MAX_UV  1950000
 
+
 /*the rgb_apds9251_platform_data structure needs to cite the definition of rgb_apds9251_data*/
 struct rgb_apds9251_data;
 
@@ -58,6 +59,7 @@ struct rgb_apds9251_platform_data {
 	int tp_color;
 };
 
+
 #define APDS9251_ALS_THRESHOLD_HSYTERESIS	1	/* 1 = 1% */
 
 #define APDS9251_ALS_CAL_LOOP			1
@@ -66,6 +68,7 @@ struct rgb_apds9251_platform_data {
 #define	APDS9251_ALS_CAL_LUX_HIGH		((130*APDS9251_ALS_CAL_LUX)/100)	// 130% of 300 lux
 
 #define APDS9251_ALS_CALIBRATED_CCT		5000
+
 
 #define APDS9251_LUX_GA1	100
 #define APDS9251_LUX_GA2	100

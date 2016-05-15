@@ -201,6 +201,7 @@ int als_data_count=0;    //ALS sensor upload data times
 int ps_data_count=0;     //ps sensor upload data times
 int compass_data_count=0;//compass sensor upload data times
 
+
 static ssize_t store_sensor_DT_test(struct device *dev,
 				struct device_attribute *attr, const char *buf, size_t count)
 {

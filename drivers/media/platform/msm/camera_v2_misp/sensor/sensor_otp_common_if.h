@@ -1,20 +1,4 @@
-/*************************************************
-  Copyright (C), 1988-1999, Huawei Tech. Co., Ltd.
-  File name        : Sensor_otp_common_if.h 
-  Version           : Initial Draft  
-  Date               : 2014/05/14
-  Description   : this file contions otp function we used. We 
-               define a struct that contion otp we support
-               and the otp function.
-  Function List    :  
-           is_exist_otp_function
-           s5k4e1_liteon_13p1_otp_func
-           ov5648_sunny_p5v18g_otp_func
-  History            : 
-  1.Date            : 2014/05/14
-     Modification  : Created File
 
-*************************************************/
 
 
 

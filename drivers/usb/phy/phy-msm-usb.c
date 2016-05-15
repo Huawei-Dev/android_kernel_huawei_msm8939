@@ -124,6 +124,13 @@ static struct regulator *hsusb_3p3;
 static struct regulator *hsusb_1p8;
 static struct regulator *hsusb_vdd;
 static struct regulator *vbus_otg;
+#ifdef CONFIG_HUAWEI_KERNEL
+#define RUN_MODE_LEN 32
+static char runmode[RUN_MODE_LEN];
+static char chargermode[RUN_MODE_LEN];
+static int oem_otg_enable = 0;
+static int g_otg_switch_feature = 0;
+#endif
 static struct regulator *mhl_usb_hs_switch;
 static struct power_supply *psy;
 
@@ -1384,6 +1391,7 @@ phcd_retry:
 	 * PHY retention and collapse can not happen with VDP_SRC enabled.
 	 */
 
+
 	/*
 	 * We come here in 3 scenarios.
 	 *
@@ -1764,13 +1772,28 @@ static void msm_otg_notify_host_mode(struct msm_otg *motg, bool host_mode)
 static int msm_otg_notify_chg_type(struct msm_otg *motg)
 {
 	static int charger_type;
+#ifdef CONFIG_HUAWEI_KERNEL
+	static int chg_type = -1;
+#endif
 
 	/*
 	 * TODO
 	 * Unify OTG driver charger types and power supply charger types
 	 */
+	/* should use the same type to compare */
+#ifdef CONFIG_HUAWEI_KERNEL
+	if (chg_type == motg->chg_type)
+	{
+		return 0;
+	}
+	else
+	{
+		chg_type = motg->chg_type;
+	}
+#else
 	if (charger_type == motg->chg_type)
 		return 0;
+#endif
 
 	if (motg->chg_type == USB_SDP_CHARGER)
 		charger_type = POWER_SUPPLY_TYPE_USB;
@@ -2029,7 +2052,7 @@ static void msm_hsusb_vbus_power(struct msm_otg *motg, bool on)
 	}
 
 	if (!vbus_otg) {
-		usb_logs_err("vbus_otg is NULL.");
+		/*delete nouse log*/
 		return;
 	}
 
@@ -2761,6 +2784,7 @@ static const char *chg_to_string(enum usb_chg_type chg_type)
 #else
 #define MSM_CHG_DCD_TIMEOUT		(750 * HZ/1000) /* 750 msec */
 #endif
+/* DTS2014072309079 sunwenyong 20140724 end>¡¡*/
 #define MSM_CHG_DCD_POLL_TIME		(50 * HZ/1000) /* 50 msec */
 #define MSM_CHG_PRIMARY_DET_TIME	(50 * HZ/1000) /* TVDPSRC_ON */
 #define MSM_CHG_SECONDARY_DET_TIME	(50 * HZ/1000) /* TVDMSRC_ON */
@@ -2825,6 +2849,10 @@ static void msm_chg_detect_work(struct work_struct *w)
 			motg->chg_state = USB_CHG_STATE_DCD_DONE;
 		} else {
 			delay = MSM_CHG_DCD_POLL_TIME;
+			if(motg->dcd_time >= MSM_CHG_DCD_POLL_TIME * 15){
+				psy->type = POWER_SUPPLY_TYPE_USB_DCP;
+				usb_dev_info(phy->dev, "dcd 750ms timeout\n");
+			}
 		}
 		break;
 	case USB_CHG_STATE_DCD_DONE:
@@ -2934,6 +2962,7 @@ static void msm_otg_init_sm(struct msm_otg *motg)
 
 	switch (pdata->mode) {
 	case USB_OTG:
+        dev_info(motg->phy.dev, "[USB_DEBUG]%s:otg_control is %d. \n",__func__,pdata->otg_control);
 		if (pdata->otg_control == OTG_USER_CONTROL) {
 			if (pdata->default_mode == USB_HOST) {
 				clear_bit(ID, &motg->inputs);
@@ -2962,10 +2991,27 @@ static void msm_otg_init_sm(struct msm_otg *motg)
 				else
 					clear_bit(ID, &motg->inputs);
 			} else if (motg->ext_id_irq) {
-				if (gpio_get_value(pdata->usb_id_gpio))
+              dev_info(motg->phy.dev, "[USB_DEBUG]%s:get gpio value =%d,inputs=%lu.\n",__func__,
+                                       gpio_get_value(pdata->usb_id_gpio),motg->inputs);
+                if (gpio_get_value(pdata->usb_id_gpio))
+                {
 					set_bit(ID, &motg->inputs);
-				else
-					clear_bit(ID, &motg->inputs);
+                    dev_info(motg->phy.dev, "[USB_DEBUG]%s:get gpio true | set ID.\n",__func__);
+                }
+                else
+                {
+                    if (1 == g_otg_switch_feature)
+                    {
+                        set_bit(ID, &motg->inputs);
+                        dev_info(motg->phy.dev, "[USB_DEBUG]%s:get gpio false | set ID.\n",__func__);
+                    }
+                    else
+                    {
+                        clear_bit(ID, &motg->inputs);
+                        dev_info(motg->phy.dev, "[USB_DEBUG]%s:get gpio false | clear ID.\n",__func__);
+                    }
+                }
+              dev_info(motg->phy.dev, "[USB_DEBUG]%s:inputs=%lu. \n",__func__,motg->inputs);
 			}
 			/*
 			 * VBUS initial state is reported after PMIC
@@ -3928,7 +3974,12 @@ out:
 		queue_work(system_nrt_wq, &motg->sm_work);
 	}
 }
-
+static bool id_level =true;
+bool get_usb_id_status(void)
+{
+	return id_level;
+}
+EXPORT_SYMBOL(get_usb_id_status);
 static void msm_id_status_w(struct work_struct *w)
 {
 	struct msm_otg *motg = container_of(w, struct msm_otg,
@@ -3942,20 +3993,30 @@ static void msm_id_status_w(struct work_struct *w)
 		id_state = msm_otg_read_pmic_id_state(motg);
 	else if (motg->ext_id_irq)
 		id_state = gpio_get_value(motg->pdata->usb_id_gpio);
+	id_level = id_state;
+    dev_info(motg->phy.dev, "%s,id_state is %d\n",__func__,id_state);
 
 	if (id_state) {
 		if (!test_and_set_bit(ID, &motg->inputs)) {
-			usb_logs_info("ID set\n");
+			pr_info("ID set\n");
 			work = 1;
 		}
 	} else {
-		if (test_and_clear_bit(ID, &motg->inputs)) {
-			usb_logs_info("ID clear\n");
+           if (1 == g_otg_switch_feature){
+               if ((is_usb_chg_exist() == 0) && test_and_clear_bit(ID, &motg->inputs)) {
+                pr_info("ID clear\n");
+                set_bit(A_BUS_REQ, &motg->inputs);
+                work = 1;
+           }
+        }
+        else {
+            if (test_and_clear_bit(ID, &motg->inputs)) {
+            pr_info("ID clear\n");
 			set_bit(A_BUS_REQ, &motg->inputs);
 			work = 1;
 		}
 	}
-
+    }
 	if (work && (motg->phy.state != OTG_STATE_UNDEFINED)) {
 		if (atomic_read(&motg->pm_suspended)) {
 			motg->sm_work_pending = true;
@@ -4312,7 +4373,7 @@ otg_get_prop_usbin_voltage_now(struct msm_otg *motg)
 int is_vbus_otg_regulator_enabled(void)
 {
 	if (!vbus_otg) {
-		usb_logs_err("vbus_otg is NULL.");
+		/*delete nouse log*/
 		return 0;
 	}
 
@@ -4967,10 +5028,30 @@ struct msm_otg_platform_data *msm_otg_dt_to_pdata(struct platform_device *pdev)
 				pdata->phy_init_seq_host,
 				len/sizeof(*pdata->phy_init_seq_host));
 	}
+    of_property_read_u32(node, "otg_switch_feature",&g_otg_switch_feature);
+    usb_logs_info("g_otg_switch_feature=%d\n", g_otg_switch_feature);
 	of_property_read_u32(node, "qcom,hsusb-otg-power-budget",
 				&pdata->power_budget);
 	of_property_read_u32(node, "qcom,hsusb-otg-mode",
 				&pdata->mode);
+    /*
+     * factory veriosn, do not care oem, keep same with mode in device tree
+     * normal version, if otg is disabled in oem, set the mode to PERIPHERAL
+     */
+#ifdef CONFIG_HUAWEI_KERNEL
+if(1 == g_otg_switch_feature){
+     if(strcmp(runmode,"factory") && USB_OTG == pdata->mode)
+     {
+         /*otg status is disabled in oem, so set the mode to USB_PERIPHERAL*/
+         if((0 == strcmp(chargermode,"charger")) || (0 == oem_otg_enable))
+         {
+             pdata->mode = USB_PERIPHERAL;
+             pr_info("otg disabled, set mode to USB_PERIPHERAL\n");
+         }
+     }
+}
+    pr_info("otg mode =%d\n", pdata->mode);
+#endif
 	of_property_read_u32(node, "qcom,hsusb-otg-otg-control",
 				&pdata->otg_control);
 	of_property_read_u32(node, "qcom,hsusb-otg-default-mode",
@@ -5326,6 +5407,7 @@ static int msm_otg_probe(struct platform_device *pdev)
 		}
 	}
 
+
 	clk_prepare_enable(motg->pclk);
 
 	hsusb_vdd = devm_regulator_get(motg->phy.dev, "hsusb_vdd_dig");
@@ -5570,7 +5652,7 @@ static int msm_otg_probe(struct platform_device *pdev)
 	}
 
 	motg->usb_psy.name = "usb";
-	motg->usb_psy.type = POWER_SUPPLY_TYPE_USB;
+	motg->usb_psy.type = POWER_SUPPLY_TYPE_UNKNOWN;
 	motg->usb_psy.supplied_to = otg_pm_power_supplied_to;
 	motg->usb_psy.num_supplicants = ARRAY_SIZE(otg_pm_power_supplied_to);
 	motg->usb_psy.properties = otg_pm_power_props_usb;
@@ -5918,5 +6000,46 @@ static struct platform_driver msm_otg_driver = {
 
 module_platform_driver(msm_otg_driver);
 
+#ifdef CONFIG_HUAWEI_KERNEL
+static int __init run_mode_setup(char * p)
+{
+    if(!p) {
+        return 0;
+    }
+
+    strncpy(runmode, p, RUN_MODE_LEN);
+    return 0;
+}
+early_param("androidboot.huawei_swtype", run_mode_setup);
+
+static int __init otg_status_setup(char * p)
+{
+    if(!p) {
+        return 0;
+    }
+
+    if(!strcmp(p, "enable")) {
+        oem_otg_enable = 1;
+    }
+    else {
+        oem_otg_enable = 0;
+    }
+    pr_info("otg status p:%s, oem_otg_enable :%u\n", p, oem_otg_enable);
+    return 0;
+}
+early_param("otg.status", otg_status_setup);
+
+static int __init charger_mode_setup(char * p)
+{
+    if(!p) {
+        return 0;
+    }
+
+    strncpy(chargermode, p, RUN_MODE_LEN);
+    pr_info("charger mode p:%s, charger_mode_setup :%s\n", p, chargermode);
+    return 0;
+}
+early_param("androidboot.mode", charger_mode_setup);
+#endif
 MODULE_LICENSE("GPL v2");
 MODULE_DESCRIPTION("MSM USB transceiver driver");

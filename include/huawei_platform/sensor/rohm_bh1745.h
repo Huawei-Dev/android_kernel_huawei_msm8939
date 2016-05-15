@@ -94,6 +94,7 @@
 #define BH1745_VIO_MIN_UV  1750000
 #define BH1745_VIO_MAX_UV  1950000
 
+
 /*the rgb_bh1745_platform_data structure needs to cite the definition of rgb_bh1745_data*/
 struct rgb_bh1745_data;
 
@@ -123,6 +124,7 @@ struct rgb_bh1745_platform_data {
 #define BH1745_AGAIN_8X_LUXCALCULATION	8  /* 8X ALS GAIN */
 #define BH1745_AGAIN_16X_LUXCALCULATION	16  /* 16X ALS GAIN */
 #define BH1745_AGAIN_120X_LUXCALCULATION	120  /* 120X ALS GAIN */
+
 
 /* Register Value define : CONTROL */
 #define BH1745_AGAIN_1X	0x00  /* 1X ALS GAIN */

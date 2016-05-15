@@ -34,6 +34,169 @@
 
 #define SENSOR_MAX_MOUNTANGLE (360)
 
+#ifdef CONFIG_HUAWEI_KERNEL
+#include "msm_camera_io_util.h"
+#define PT_CAMERA_POWER_NUM 3
+#define PT_CAMERA_LABLE_NAME_LEN 64
+#define IS_BIT_TRUE(num, bit_num) (((num >> bit_num) & 1) == 1)
+#define PT_ACTION_VALUE(action) (action & 1)
+#define PRODUCT_NAME_RIO "RIO"
+#define CAMERA_VANA_NAME "cam_vana"
+
+extern bool huawei_cam_is_factory_mode(void);
+int32_t PT_camera_power_action_value = 0;
+
+typedef struct PT_camera_gpio{
+	uint16_t gpio;
+	char label[PT_CAMERA_LABLE_NAME_LEN];
+}PT_camera_gpio_t;
+
+static PT_camera_gpio_t camera_power_gpios[PT_CAMERA_POWER_NUM] = {
+    {1012,"VANA"},
+    {1016,"VIO"},
+    {1023,"VDIG"}
+};//default value.
+
+static int pt_set_camera_power_gpio(int bit_num, int action_value){
+    int rc = 0;
+
+    rc = gpio_request_one(camera_power_gpios[bit_num - 1].gpio, GPIOF_DIR_OUT,
+        camera_power_gpios[bit_num - 1].label);
+    if (rc < 0) {
+        pr_err("%s: gpio request error\n", __func__);
+        return -1;
+    }
+    udelay(10);
+    gpio_set_value_cansleep(camera_power_gpios[bit_num - 1].gpio, action_value);
+
+    udelay(10);
+    gpio_free(camera_power_gpios[bit_num - 1].gpio);
+    return 0;
+}
+
+static int pt_set_camera_power_verg(struct msm_camera_power_ctrl_t *power_info,
+    int action_value, char * verg_name){
+
+    int i = 0;
+    int j = 0;
+    struct msm_sensor_power_setting *power_setting = NULL;
+
+    if(!power_info || !verg_name){
+        pr_err("%s: power_info is NULL\n", __func__);
+        return -1;
+    }
+
+    for(i = 0; i < power_info->power_setting_size; i++){
+        power_setting = &power_info->power_setting[i];
+
+        if(power_setting->seq_type == SENSOR_VREG){
+            for(j = 0; j < power_info->num_vreg; j++){
+                if(!strcmp(power_info->cam_vreg[j].reg_name, verg_name)){
+                    msm_camera_config_single_vreg(power_info->dev,
+                        &power_info->cam_vreg[j],
+                        (struct regulator **)&power_setting->data[0], action_value);
+
+                    return 0;
+                }
+            }
+        }
+    }
+    return -1;
+}
+
+static ssize_t store_camera_power_status(struct device *dev,
+		struct device_attribute *attr, const char *buf, size_t len)
+{
+    struct msm_sensor_ctrl_t  *s_ctrl = NULL;
+	struct msm_camera_power_ctrl_t *power_info = NULL;
+    
+    int i = 0, rc = 0;
+
+    if(!dev || !buf){
+        pr_err("%s: invalid parameter: null ptr\n", __func__);
+        return -1;
+    }
+
+    if(huawei_cam_is_factory_mode()){
+        s_ctrl = (struct msm_sensor_ctrl_t *)dev_get_drvdata(dev);
+
+        if(!s_ctrl){
+            pr_err("%s: get pdata fail\n", __func__);
+            return -1;
+        }
+
+        power_info = &s_ctrl->sensordata->power_info;
+
+        if(NULL !=power_info && NULL !=power_info->gpio_conf){
+            camera_power_gpios[0].gpio = power_info->gpio_conf->
+                gpio_num_info->gpio_num[SENSOR_GPIO_VANA];
+			camera_power_gpios[1].gpio = power_info->gpio_conf->
+                gpio_num_info->gpio_num[SENSOR_GPIO_VIO];
+			camera_power_gpios[2].gpio = power_info->gpio_conf->
+                gpio_num_info->gpio_num[SENSOR_GPIO_VDIG];
+		}else{
+            pr_err("%s: use default gpio value\n", __func__);
+		}
+
+        sscanf(buf, "%d", &PT_camera_power_action_value);
+        pr_err("%s: VANA = %d, VIO = %d, VDIG = %d, action_value = %d\n",
+            __func__, camera_power_gpios[0].gpio, camera_power_gpios[1].gpio, 
+            camera_power_gpios[2].gpio, PT_camera_power_action_value);
+
+        /* 
+         * bit0: 1->power up, 0->power off
+         * bit1: VANA power
+         * bit2: VIO power
+         * bit3: VDIG power
+         */
+        for(i = 1; i < 4; i++){
+            if(IS_BIT_TRUE(PT_camera_power_action_value, i)){
+                if(!strcmp(s_ctrl->product_name, PRODUCT_NAME_RIO) && i == 1){
+                    rc = pt_set_camera_power_verg(power_info,
+                            PT_ACTION_VALUE(PT_camera_power_action_value), CAMERA_VANA_NAME);
+
+                    if(rc){
+                        pr_err("%s: pt_set_camera_power_verg fail rc = %d\n",
+                            __func__, rc);
+                        return -1;
+                    }
+                }else{
+                    rc = pt_set_camera_power_gpio(i,
+                            PT_ACTION_VALUE(PT_camera_power_action_value));
+                    if(rc){
+                        pr_err("%s: pt_set_camera_power_gpio fail rc = %d\n",
+                            __func__, rc);
+                    }
+                }
+            }
+        }
+    }
+
+    return len;
+    
+}
+
+static ssize_t show_camera_power_status(struct device *dev,
+		struct device_attribute *attr, char *buf)
+{
+	int32_t rc = 0;
+    
+    if(!dev || !buf){
+        pr_err("%s: invalid parameter: null ptr\n", __func__);
+        return -1;
+    }
+    
+	if(huawei_cam_is_factory_mode()){
+		rc=snprintf(buf, PAGE_SIZE, "%d\n", PT_camera_power_action_value);
+		pr_err("%s: buf=%s, rc=%d\n", __func__, buf, rc);
+	}
+
+	return rc;
+}
+
+static DEVICE_ATTR(enable_PT_camera_test, 0664, show_camera_power_status, store_camera_power_status);
+#endif
+
 static struct v4l2_file_operations msm_sensor_v4l2_subdev_fops;
 
 /* Static declaration */
@@ -59,6 +222,7 @@ static int msm_sensor_platform_remove(struct platform_device *pdev)
 
 	return 0;
 }
+
 
 static const struct of_device_id msm_sensor_driver_dt_match[] = {
 	{.compatible = "qcom,camera"},
@@ -352,6 +516,7 @@ static int32_t msm_sensor_fill_slave_info_init_params(
 	return 0;
 }
 
+
 static int32_t msm_sensor_validate_slave_info(
 	struct msm_sensor_info_t *sensor_info)
 {
@@ -566,6 +731,7 @@ static int32_t msm_sensor_get_power_up_settings(void *setting,
 			pu[i].seq_type, pu[i].seq_val,
 			pu[i].config_val, pu[i].delay);
 	}
+
 
 	/* Fill power up setting and power up setting size */
 	power_info->power_setting = pu;
@@ -782,6 +948,7 @@ int32_t msm_sensor_driver_probe(void *setting,
 		pr_err("failed");
 		goto free_slave_info;
 	}
+
 
 	camera_info = kzalloc(sizeof(struct msm_camera_slave_info), GFP_KERNEL);
 	if (!camera_info) {
@@ -1246,6 +1413,7 @@ static int32_t msm_sensor_driver_parse(struct msm_sensor_ctrl_t *s_ctrl)
 	CDBG("Enter");
 	/* Validate input parameters */
 
+
 	/* Allocate memory for sensor_i2c_client */
 	s_ctrl->sensor_i2c_client = kzalloc(sizeof(*s_ctrl->sensor_i2c_client),
 		GFP_KERNEL);
@@ -1400,6 +1568,16 @@ static int32_t msm_sensor_driver_platform_probe(struct platform_device *pdev)
 
 	/* Fill device in power info */
 	s_ctrl->sensordata->power_info.dev = &pdev->dev;
+#ifdef CONFIG_HUAWEI_KERNEL
+	if(huawei_cam_is_factory_mode() &&
+        s_ctrl->sensordata->sensor_info->position == BACK_CAMERA_B){
+		//create PT cameta test device node
+		rc = device_create_file(&pdev->dev, &dev_attr_enable_PT_camera_test);
+		if (rc){
+			pr_err("%s: PT camera node creat failed, rc=%d\n", __func__, rc);
+		}
+	}
+#endif
 	return rc;
 FREE_S_CTRL:
 	kfree(s_ctrl);
@@ -1504,6 +1682,7 @@ static int __init msm_sensor_driver_init(void)
 
 	return rc;
 }
+
 
 static void __exit msm_sensor_driver_exit(void)
 {

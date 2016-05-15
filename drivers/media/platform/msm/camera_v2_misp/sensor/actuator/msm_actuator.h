@@ -22,6 +22,7 @@
 #include "msm_camera_io_util.h"
 #include "mini_isp.h"
 
+
 #define DEFINE_MSM_MUTEX(mutexname) \
 	static struct mutex mutexname = __MUTEX_INITIALIZER(mutexname)
 

@@ -231,10 +231,12 @@ static int32_t msm_sensor_get_dt_data(struct device_node *of_node,
 			sensordata->power_info.num_vreg,
 			&sensordata->power_info);
 
+
 	if (rc < 0) {
 		pr_err("%s failed %d\n", __func__, __LINE__);
 		goto FREE_VREG;
 	}
+
 
 	rc = msm_camera_get_power_settimgs_from_sensor_lib(
 			&sensordata->power_info,

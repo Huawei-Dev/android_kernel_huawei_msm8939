@@ -34,7 +34,7 @@
 #include <linux/fb.h>
 #endif
 #include <linux/platform_device.h>
-#include <linux/dsm_pub.h>
+#include <dsm/dsm_pub.h>
 #include <linux/amba/pl022.h>
 #include <linux/regulator/consumer.h>
 #define CS_CONTROL  0
@@ -100,6 +100,7 @@ extern u8 g_fpc_debug_mask;
 #define FPC1020_PIXEL_ROWS          192U
 #define FPC1020_PIXEL_COLUMNS     192U
 
+
 #define FPC1020_FRAME_SIZE_MAX          (FPC1020_PIXEL_COLUMNS * \
         FPC1020_PIXEL_ROWS)
 
@@ -153,6 +154,7 @@ typedef enum
 
 #define I32_MAX      (0x7fffffff)                // Max positive value representable as 32-bit signed integer
 #define ABS(X)       (((X) < 0) ? -(X) : (X))    // Fast absolute value for 32-bit integers
+
 
 /** {-X,Y} for 1021 (backmounted), {-Y,-X} for 1150 (backmounted, rotated) */
 #define HANDLE_SENSOR_POSITIONING_X(X, Y) (-X)
@@ -458,6 +460,7 @@ typedef struct
     u16             reg_size;
     u8*              dataptr;
 } fpc1020_reg_access_t;
+
 
 typedef struct
 {

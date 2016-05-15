@@ -45,6 +45,19 @@ MODULE_LICENSE("GPL");
 MODULE_AUTHOR("Fingerprint Cards AB <tech@fingerprints.com>");
 MODULE_DESCRIPTION("FPC1020 touch sensor driver.");
 
+#define FPC1020_IOC_MAGIC     'f'  //define magic number
+
+//define commands
+#define  FPC1020_IOC_CMD_ENABLE_IRQ             _IO(FPC1020_IOC_MAGIC, 1)
+#define  FPC1020_IOC_CMD_DISABLE_IRQ            _IO(FPC1020_IOC_MAGIC, 2)
+#define  FPC1020_IOC_CMD_SET_NAVIGATION_EVENT   _IO(FPC1020_IOC_MAGIC, 3)
+#define  FPC1020_IOC_CMD_GET_IRQ_STATUS         _IO(FPC1020_IOC_MAGIC, 4)
+#define  FPC1020_IOC_CMD_SET_WAKELOCK_STATUS    _IO(FPC1020_IOC_MAGIC, 5)
+/* get sensor id and return to hal */
+#define  FPC1020_IOC_CMD_GET_SENSORID           _IO(FPC1020_IOC_MAGIC, 6)
+/* add for worker idle */
+#define  FPC1020_IOC_CMD_WORKER_IDLE            _IO(FPC1020_IOC_MAGIC, 7)
+
 static struct dsm_dev dsm_fingerprint = {
     .name = "dsm_fingerprint",
     .fops = NULL,
@@ -57,6 +70,8 @@ static struct dsm_dev dsm_fingerprint = {
 typedef enum {
     FPC_1020_ERROR_REG_BIT_FIFO_UNDERFLOW = 1 << 0
 } fpc1020_error_reg_t;
+
+
 
 /* -------------------------------------------------------------------- */
 /* global variables                         */
@@ -90,6 +105,7 @@ enum {
     FPC1020_FINGER_DETECT_BEGIN = 1,
     FPC1020_FINGER_DETECT_CANCLE,
 };
+
 
 /* -------------------------------------------------------------------- */
 /* fpc1020 driver constants                     */
@@ -127,6 +143,9 @@ static ssize_t fpc1020_read(struct file *file, char *buff,
 static int fpc1020_release(struct inode *inode, struct file *file);
 
 static unsigned int fpc1020_poll(struct file *file, poll_table *wait);
+
+static void reset_capture(fpc1020_data_t *fpc1020);
+static long fpc1020_ioctl(struct file* file, unsigned int cmd, unsigned long arg);
 
 static int fpc1020_cleanup(fpc1020_data_t *fpc1020, struct spi_device *spidev);
 
@@ -227,6 +246,7 @@ static const struct file_operations fpc1020_fops = {
     .read           = fpc1020_read,
     .release        = fpc1020_release,
     .poll           = fpc1020_poll,
+    .unlocked_ioctl = fpc1020_ioctl,
 };
 
 /* -------------------------------------------------------------------- */
@@ -264,6 +284,7 @@ static ssize_t fingerprint_chip_info_show(struct device *dev, struct device_attr
 
     fpc1020_data_t *fpc1020;
     fpc1020 = dev_get_drvdata(dev);
+
 
     if (gpio_is_valid(fpc1020->moduleID_gpio)){
         val = gpio_get_value(fpc1020->moduleID_gpio);
@@ -349,6 +370,7 @@ static const struct attribute_group fpc1020_diag_attr_group = {
     .name = "diag"
 };
 
+
 /* -------------------------------------------------------------------- */
 /* SPI debug interface, prototypes                  */
 /* -------------------------------------------------------------------- */
@@ -388,6 +410,7 @@ static int __init fpc1020_init(void)
     return 0;
 }
 
+
 /* -------------------------------------------------------------------- */
 static void __exit fpc1020_exit(void)
 {
@@ -423,6 +446,7 @@ static int fb_notifier_callback(struct notifier_block *self, unsigned long event
                 fpc_log_debug("FB_EARLY_EVENT_BLANK resume: event = %lu\n", event);
                 break;
             case FB_EVENT_BLANK:
+                fpc_log_info("FB_EVENT_BLANK resume: fpc1020->taskstate:%d\n",atomic_read(&fpc1020->taskstate));
                 atomic_set(&fpc1020->state, fp_LCD_UNBLANK);
                 if ((fp_CAPTURE != atomic_read(&fpc1020->taskstate)) && (1 == fpc1020->diag.navigation_enable))
                 {
@@ -445,6 +469,7 @@ static int fb_notifier_callback(struct notifier_block *self, unsigned long event
             case FB_EVENT_BLANK:
                 cancel_work_sync(&fpc1020->fpc_nav_work);
                 atomic_set(&fpc1020->state, fp_LCD_POWEROFF);
+                fpc_log_info("FB_EVENT_BLANK suspend: fpc1020->taskstate:%d\n", atomic_read(&fpc1020->taskstate));
                 if ((fp_CAPTURE != atomic_read(&fpc1020->taskstate)) && (1 == fpc1020->diag.navigation_enable))
                 {
                     fpc1020_start_navigation(fpc1020);
@@ -592,6 +617,7 @@ static int fpc1020_probe(struct spi_device *spi)
 
     fpc1020_init_capture(fpc1020);
 
+
 #if defined(CONFIG_FB)
     fpc1020->fb_notify.notifier_call = NULL;
 #endif
@@ -711,6 +737,7 @@ static int fpc1020_probe(struct spi_device *spi)
     }
 #endif
 
+
     wake_lock_init(&fpc1020->fp_wake_lock, WAKE_LOCK_SUSPEND, "fingerprint_wakelock");
     up(&fpc1020->mutex);
 
@@ -742,8 +769,10 @@ err_chrdev:
 err:
     fpc1020_cleanup(fpc1020, spi);
     fpc_log_info("fpc probe failed!\n");
+    send_msg_to_dsm(fpc1020->dsm_fingerprint_client, error, DSM_FINGERPRINT_PROBE_FAIL_ERROR_NO);
     return error;
 }
+
 
 /* -------------------------------------------------------------------- */
 static int  fpc1020_remove(struct spi_device *spi)
@@ -781,17 +810,15 @@ static int fpc1020_suspend(struct device *dev)
 {
     fpc1020_data_t *fpc1020 = dev_get_drvdata(dev);
     struct irq_desc *desc = irq_to_desc((unsigned int)fpc1020->irq);
-    int error = 0;
 
     fpc_log_info("ENTER!\n");
 
     if (desc) {
         if (unlikely(desc->core_internal_state__do_not_mess_with_it & FPC_IRQS_PENDING)) {
-            fpc_log_err("unexpected irq pending, do reset!\n");
-            error = fpc1020_reset(fpc1020);
-            if (error) {
-                fpc_log_err("reset for unexpected irq pending failed, pls check!\n");
-            }
+            // just clear the IRQ PENDING bit to not block suspend, it is more stable then reset chip
+            fpc_log_err("unexpected irq pending, cur state is:0x%x\n", desc->core_internal_state__do_not_mess_with_it);
+            desc->core_internal_state__do_not_mess_with_it &= ~FPC_IRQS_PENDING;
+            fpc_log_err("after clear pending state, cur stat is:0x%x\n", desc->core_internal_state__do_not_mess_with_it);
         }
     }
 
@@ -802,6 +829,7 @@ static int fpc1020_suspend(struct device *dev)
 
     return 0;
 }
+
 
 /* -------------------------------------------------------------------- */
 static int fpc1020_resume(struct device *dev)
@@ -817,6 +845,7 @@ static int fpc1020_resume(struct device *dev)
 
     return 0;
 }
+
 
 /* -------------------------------------------------------------------- */
 static int fpc1020_open(struct inode *inode, struct file *file)
@@ -843,6 +872,7 @@ static int fpc1020_open(struct inode *inode, struct file *file)
         return -ERESTARTSYS;
     }
     atomic_set(&fpc1020->taskstate, fp_CAPTURE);
+    fpc_log_info("fpc1020_open fpc1020->taskstate=%d\n",atomic_read(&fpc1020->taskstate));
     fpc1020->diag.result = 0;
     fpc1020->capture.state = FPC1020_CAPTURE_STATE_IDLE;
     fpc1020->capture.available_bytes = 0;
@@ -857,6 +887,7 @@ static int fpc1020_open(struct inode *inode, struct file *file)
     return 0;
 }
 
+
 /* -------------------------------------------------------------------- */
 static ssize_t fpc1020_write(struct file *file, const char *buff,
                     size_t count, loff_t *ppos)
@@ -865,6 +896,7 @@ static ssize_t fpc1020_write(struct file *file, const char *buff,
 
     return -ENOTTY;
 }
+
 
 /* -------------------------------------------------------------------- */
 static ssize_t fpc1020_read(struct file *file, char *buff,
@@ -894,11 +926,14 @@ static ssize_t fpc1020_read(struct file *file, char *buff,
             if (fpc1020_capture_check_ready(fpc1020)) {
                 if (fpc1020->capture.last_error != 0) {
                     error = fpc1020->capture.last_error;
+                    fpc_log_err("capture task state invalid, error: %d\n", error);
                     goto out;
                 }
                 error = fpc1020_start_capture(fpc1020);
-                if (error)
+                if (error) {
+                    fpc_log_err("capture task state invalid, error: %d\n", error);
                     goto out;
+                }
             }
 
             error = -EWOULDBLOCK;
@@ -906,8 +941,10 @@ static ssize_t fpc1020_read(struct file *file, char *buff,
 
         } else {
             error = fpc1020_start_capture(fpc1020);
-            if (error)
+            if (error) {
+                fpc_log_err("capture task state invalid, error: %d\n", error);
                 goto out;
+            }
         }
     }
     fpc_log_info("block mode while reading\n");
@@ -915,8 +952,10 @@ static ssize_t fpc1020_read(struct file *file, char *buff,
             fpc1020->capture.wq_data_avail,
             (fpc1020->capture.available_bytes > 0));
 
-    if (error)
+    if (error) {
+        fpc_log_err("wait_event_interruptible failed, error: %d\n", error);
         goto out;
+    }
 
     if (fpc1020->capture.last_error != 0) {
         error = fpc1020->capture.last_error;
@@ -932,8 +971,10 @@ copy_data:
             &fpc1020->huge_buffer[fpc1020->capture.read_offset],
             max_data);
 
-        if (error)
+        if (error) {
+            fpc_log_err("copy_to_user failed, error: %d\n", error);
             goto out;
+        }
 
         fpc1020->capture.read_offset += max_data;
         fpc1020->capture.available_bytes -= max_data;
@@ -950,6 +991,7 @@ out:
     return error;
 }
 
+
 /* -------------------------------------------------------------------- */
 static int fpc1020_release(struct inode *inode, struct file *file)
 {
@@ -957,6 +999,11 @@ static int fpc1020_release(struct inode *inode, struct file *file)
     int status = 0;
 
     fpc_log_debug("ENTER!\n");
+
+    if( NULL == fpc1020 ) {
+        fpc_log_err("fpc1020 is null!\n");
+        return -1;
+    }
     /* remove spi ctrl work */
     atomic_set(&fpc1020->taskstate, fp_UNINIT);
 
@@ -977,6 +1024,7 @@ out:
 
     return status;
 }
+
 
 /* -------------------------------------------------------------------- */
 static unsigned int fpc1020_poll(struct file *file, poll_table *wait)
@@ -1039,6 +1087,134 @@ static unsigned int fpc1020_poll(struct file *file, poll_table *wait)
 
     return ret;
 }
+/* -------------------------------------------------------------------- */
+static void reset_capture(fpc1020_data_t *fpc1020)
+{
+
+    if (fp_CAPTURE != atomic_read(&fpc1020->taskstate)) {
+        fpc_log_info("reset_capture set taskstate to fp_CAPTURE\n");
+        atomic_set(&fpc1020->taskstate, fp_CAPTURE);
+    }
+    fpc1020->diag.result = 0;
+    fpc1020->capture.state = FPC1020_CAPTURE_STATE_IDLE;
+    fpc1020->capture.available_bytes = 0;
+    fpc1020->capture.read_offset = 0;
+    fpc1020->capture.last_error = 0;
+    fpc1020->capture.read_pending_eof = false;
+    fpc1020->fp_thredhold = fpc1020->setup.finger_detect_threshold; //init default thredhold
+}
+
+/* -------------------------------------------------------------------- */
+static long fpc1020_ioctl(struct file* file, unsigned int cmd, unsigned long arg)
+{
+
+    int error = 0;
+    void __user* argp = (void __user*)arg;
+    int key;
+    int status;
+    /* sensor_id not used */
+
+    fpc1020_data_t *fpc1020 = file->private_data;
+
+    if (_IOC_TYPE(cmd) != FPC1020_IOC_MAGIC)
+    {
+        fpc_log_err("%s IOC type is error.\n", __func__);
+        return -ENOTTY;
+    }
+
+    switch (cmd)
+    {
+        case FPC1020_IOC_CMD_ENABLE_IRQ:
+            fpc_log_info("%s FPC1020_IOC_CMD_ENABLE_IRQ\n", __func__);
+            //enable_irq(gpio_to_irq(fingerprint->irq_gpio ));
+            break;
+
+        case FPC1020_IOC_CMD_DISABLE_IRQ:
+            fpc_log_info("%s FPC1020_IOC_CMD_DISABLE_IRQ\n", __func__);
+            //disable_irq(gpio_to_irq(fingerprint->irq_gpio ));
+            break;
+
+        case FPC1020_IOC_CMD_SET_NAVIGATION_EVENT:
+            /*
+            if (copy_from_user(&key, argp, sizeof(key)))
+            {
+                hwlog_err("%s copy_from_user failed.\n", __func__);
+                return -EFAULT;
+            }
+
+            fingerprint_input_report(fingerprint, key);
+            */
+            fpc_log_info("%s FPC1020_IOC_CMD_SET_NAVIGATION_EVENT\n", __func__);
+            break;
+
+        case FPC1020_IOC_CMD_GET_IRQ_STATUS:
+            /*
+            status = fingerprint_get_irq_status(fingerprint);
+
+            error = copy_to_user(argp, &status, sizeof(status));
+
+            if (error)
+            {
+                hwlog_err("%s copy_to_user failed error=%d.\n", __func__, error);
+                return -EFAULT;
+            }
+            */
+            fpc_log_info("%s FPC1020_IOC_CMD_GET_IRQ_STATUS status=%d\n", __func__, status);
+            break;
+
+        case FPC1020_IOC_CMD_SET_WAKELOCK_STATUS:
+            /*
+            if (copy_from_user(&key, argp, sizeof(key)))
+            {
+                hwlog_err("%s copy_from_user failed.\n", __func__);
+                return -EFAULT;
+            }
+
+            if (key == 1)
+            { fingerprint->wakeup_enabled = true; }
+            else
+            { fingerprint->wakeup_enabled = false; }
+            */
+            fpc_log_info("%s FPC1020_IOC_CMD_SET_WAKELOCK_STATUS key =%d\n", __func__, key);
+            break;
+
+        case FPC1020_IOC_CMD_GET_SENSORID:
+            error = copy_to_user(argp, &(fpc1020->chip.type), sizeof(fpc1020->chip.type));
+            if(error)
+            {
+                fpc_log_err("%s get sensor id copy_to_user failed error = %d.\n", __func__, error);
+                return -EFAULT;
+            }
+
+            fpc_log_info("%s FPC1020_IOC_CMD_GET_SENSORID = %d\n", __func__,fpc1020->chip.type);
+            break;
+
+        case FPC1020_IOC_CMD_WORKER_IDLE:
+
+            status = fpc1020_worker_goto_idle(fpc1020);
+
+            fpc1020->setup.capture_mode = FPC1020_MODE_IDLE;
+            fpc1020_sleep(fpc1020, true);
+            reset_capture(fpc1020);
+
+            error = copy_to_user(argp, &status, sizeof(status));
+            if (error)
+            {
+                fpc_log_err("%s copy_to_user failed error=%d.\n", __func__, error);
+                return -EFAULT;
+            }
+
+            fpc_log_info("%s FPC1020_IOC_CMD_WORKER_IDLE end status=%d taskstate set to:%d\n", __func__, status, atomic_read(&fpc1020->taskstate));
+            break;
+
+        default:
+            fpc_log_err("%s error = -EFAULT.\n", __func__);
+            error = -EFAULT;
+            break;
+    }
+
+    return error;
+}
 
 /* -------------------------------------------------------------------- */
 static int fpc1020_cleanup(fpc1020_data_t *fpc1020, struct spi_device *spidev)
@@ -1094,6 +1270,7 @@ static int fpc1020_cleanup(fpc1020_data_t *fpc1020, struct spi_device *spidev)
     return 0;
 }
 
+
 /* -------------------------------------------------------------------- */
 static int fpc1020_reset_init(fpc1020_data_t *fpc1020)
 {
@@ -1144,6 +1321,7 @@ static int fpc1020_reset_init(fpc1020_data_t *fpc1020)
 
     return error;
 }
+
 
 /* -------------------------------------------------------------------- */
 static int fpc1020_irq_init(fpc1020_data_t *fpc1020)
@@ -1253,6 +1431,7 @@ out_err:
     return error;
 }
 
+
 /* -------------------------------------------------------------------- */
 static int fpc1020_worker_init(fpc1020_data_t *fpc1020)
 {
@@ -1277,6 +1456,7 @@ static int fpc1020_worker_init(fpc1020_data_t *fpc1020)
     return error;
 }
 
+
 /* -------------------------------------------------------------------- */
 static int fpc1020_worker_destroy(fpc1020_data_t *fpc1020)
 {
@@ -1295,6 +1475,7 @@ static int fpc1020_worker_destroy(fpc1020_data_t *fpc1020)
     return error;
 }
 
+
 /* -------------------------------------------------------------------- */
 static int fpc1020_create_class(fpc1020_data_t *fpc1020)
 {
@@ -1311,6 +1492,7 @@ static int fpc1020_create_class(fpc1020_data_t *fpc1020)
 
     return error;
 }
+
 
 /* -------------------------------------------------------------------- */
 static int fpc1020_create_device(fpc1020_data_t* fpc1020)
@@ -1337,6 +1519,7 @@ static int fpc1020_create_device(fpc1020_data_t* fpc1020)
 
     return error;
 }
+
 
 /* -------------------------------------------------------------------- */
 static int fpc1020_manage_sysfs(fpc1020_data_t *fpc1020,  bool create)
@@ -1385,6 +1568,7 @@ static int fpc1020_manage_sysfs(fpc1020_data_t *fpc1020,  bool create)
     return error;
 }
 
+
 /* -------------------------------------------------------------------- */
 irqreturn_t fpc1020_interrupt(int irq, void *_fpc1020)
 {
@@ -1402,6 +1586,7 @@ irqreturn_t fpc1020_interrupt(int irq, void *_fpc1020)
 
     return IRQ_NONE;
 }
+
 
 /* -------------------------------------------------------------------- */
 static ssize_t fpc1020_show_attr_setup(struct device *dev,
@@ -1451,6 +1636,7 @@ static ssize_t fpc1020_show_attr_setup(struct device *dev,
 
     return -ENOENT;
 }
+
 
 /* -------------------------------------------------------------------- */
 static ssize_t fpc1020_store_attr_setup(struct device *dev,
@@ -1558,6 +1744,7 @@ static ssize_t fpc1020_store_attr_setup(struct device *dev,
     return error;
 }
 
+
 /* -------------------------------------------------------------------- */
 static ssize_t fpc1020_show_attr_diag(struct device *dev,
                     struct device_attribute *attr,
@@ -1653,6 +1840,7 @@ static ssize_t fpc1020_show_attr_diag(struct device *dev,
 
     return -ENOTTY;
 }
+
 
 /* -------------------------------------------------------------------- */
 static ssize_t fpc1020_store_attr_diag(struct device *dev,
@@ -1986,6 +2174,7 @@ static int fpc1020_check_for_deadPixels(fpc1020_data_t *fpc1020, u8* ripPixels, 
         return FPC_1020_MIN_CHECKER_DIFF_ERROR;
     }
 
+
     for (y = 0; y < check_rows; y++) {
         for (x = 0; x < check_cols; x += 2) {
             odd = (y % 2) != 0;
@@ -2126,7 +2315,7 @@ out:
    	    if (!dsm_client_ocuppy(fpc1020->dsm_fingerprint_client)) {
             dsm_client_record(fpc1020->dsm_fingerprint_client, "error=%d\n", error);
        	    dsm_client_notify(fpc1020->dsm_fingerprint_client, DSM_FINGERPRINT_TEST_DEADPIXELS_ERROR_NO);
-        }	
+        }
     }
 
     return error;
@@ -2213,6 +2402,7 @@ static u8 fpc1020_selftest_short(fpc1020_data_t *fpc1020)
     }
     error = fpc1020_check_hw_id(fpc1020);
 
+
     if (error){
         fpc_log_err("FPC_1020_VERIFY_HW_ID_ERROR, error = %d\n", error);
         err_no = FPC_1020_VERIFY_HW_ID_ERROR;
@@ -2248,6 +2438,7 @@ static u8 fpc1020_selftest_short(fpc1020_data_t *fpc1020)
     }
 
     error = fpc1020_read_irq(fpc1020, true);
+
 
     if (error < 0) {
         fpc_log_err("%s IRQ clear fail\n", id_str);
@@ -2300,6 +2491,7 @@ out:
 
     return fpc1020->diag.selftest;
 };
+
 
 /* -------------------------------------------------------------------- */
 static int fpc1020_start_capture(fpc1020_data_t *fpc1020)
@@ -2393,6 +2585,7 @@ static void fpc1020_new_job(fpc1020_data_t *fpc1020, int new_job)
     return ;
 }
 
+
 /* -------------------------------------------------------------------- */
 static int fpc1020_worker_function(void *_fpc1020)
 {
@@ -2419,6 +2612,7 @@ static int fpc1020_worker_function(void *_fpc1020)
 #ifdef CONFIG_INPUT_FPC1020_NAV
         case FPC1020_WORKER_INPUT_MODE:
             atomic_set(&fpc1020->taskstate, fp_TOUCH);
+            fpc_log_info("FPC1020_WORKER_INPUT_MODE fpc1020->taskstate=%d\n",atomic_read(&fpc1020->taskstate));
             fpc1020_input_enable(fpc1020, true);
             error = fpc1020_input_task(fpc1020);
             break;
@@ -2450,6 +2644,7 @@ static int fpc1020_worker_function(void *_fpc1020)
     return 0;
 }
 
+
 /* -------------------------------------------------------------------- */
 /* SPI debug interface, implementation                  */
 /* -------------------------------------------------------------------- */
@@ -2471,6 +2666,7 @@ static int fpc1020_spi_debug_select(fpc1020_data_t *fpc1020, fpc1020_reg_t reg)
     }
 }
 
+
 /* -------------------------------------------------------------------- */
 static int fpc1020_spi_debug_value_write(fpc1020_data_t *fpc1020, u64 data)
 {
@@ -2488,6 +2684,7 @@ static int fpc1020_spi_debug_value_write(fpc1020_data_t *fpc1020, u64 data)
 
     return error;
 }
+
 
 /* -------------------------------------------------------------------- */
 static int fpc1020_spi_debug_buffer_write(fpc1020_data_t *fpc1020,
@@ -2517,6 +2714,7 @@ static int fpc1020_spi_debug_buffer_write(fpc1020_data_t *fpc1020,
     return error;
 }
 
+
 /* -------------------------------------------------------------------- */
 static int fpc1020_spi_debug_value_read(fpc1020_data_t *fpc1020, u64 *data)
 {
@@ -2536,6 +2734,7 @@ static int fpc1020_spi_debug_value_read(fpc1020_data_t *fpc1020, u64 *data)
 
     return error;
 }
+
 
 /* -------------------------------------------------------------------- */
 static int fpc1020_spi_debug_buffer_read(fpc1020_data_t *fpc1020,
@@ -2558,6 +2757,7 @@ static int fpc1020_spi_debug_buffer_read(fpc1020_data_t *fpc1020,
 
     return error;
 }
+
 
 /* -------------------------------------------------------------------- */
 static void fpc1020_spi_debug_buffer_to_hex_string(char *string,
@@ -2587,6 +2787,7 @@ static void fpc1020_spi_debug_buffer_to_hex_string(char *string,
     string[pos] = '\0';
 }
 
+
 /* -------------------------------------------------------------------- */
 static u8 fpc1020_char_to_u8(char in_char)
 {
@@ -2601,6 +2802,7 @@ static u8 fpc1020_char_to_u8(char in_char)
 
     return 0;
 }
+
 
 /* -------------------------------------------------------------------- */
 static int fpc1020_spi_debug_hex_string_to_buffer(u8 *buffer,
@@ -2647,6 +2849,7 @@ static int fpc1020_spi_debug_hex_string_to_buffer(u8 *buffer,
     return bytes;
 }
 
+
 /* -------------------------------------------------------------------- */
 #ifdef CONFIG_INPUT_FPC1020_NAV
 static void fpc1020_start_navigation(fpc1020_data_t *fpc1020)
@@ -2657,11 +2860,13 @@ static void fpc1020_start_navigation(fpc1020_data_t *fpc1020)
         fpc_log_err("fail to acquire the semaphore\n");
         return;
     }
-
+    fpc_log_info("fpc1020_start_navigation fpc1020->taskstate=%d\n",atomic_read(&fpc1020->taskstate));
+    /*
     if(fp_CAPTURE == atomic_read(&fpc1020->taskstate)){
         fpc_log_err("capturing return\n");
         goto out;
     }
+    */
 
     if(fpc1020->diag.navigation_enable == 1 && atomic_read(&fpc1020->state)!=fp_LCD_POWEROFF)
     {
@@ -2669,6 +2874,12 @@ static void fpc1020_start_navigation(fpc1020_data_t *fpc1020)
     }
     else
     {
+        if(fp_CAPTURE == atomic_read(&fpc1020->taskstate))
+        {
+            fpc_log_info("set fpc1020->taskstate to fp_UNINIT when disable navigation\n");
+            atomic_set(&fpc1020->taskstate, fp_UNINIT);
+        }
+
         if (fpc1020_worker_goto_idle(fpc1020) < 0)
             goto out;
         fpc1020_sleep(fpc1020, true);

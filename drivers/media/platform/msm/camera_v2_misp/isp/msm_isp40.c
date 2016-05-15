@@ -732,6 +732,7 @@ static long msm_vfe40_reset_hardware(struct vfe_device *vfe_dev,
 			reload_wm(vfe_dev, 0x0003FFFF);
 	}
 
+
 	if (blocking_call) {
 		rc = wait_for_completion_timeout(
 			&vfe_dev->reset_complete, msecs_to_jiffies(50));
@@ -1821,6 +1822,7 @@ static void msm_vfe40_get_irq_mask(struct vfe_device *vfe_dev,
 	*irq1_mask = msm_camera_io_r(vfe_dev->vfe_base + 0x2C);
 }
 
+
 static void msm_vfe40_restore_irq_mask(struct vfe_device *vfe_dev)
 {
 	msm_camera_io_w(vfe_dev->error_info.overflow_recover_irq_mask0,
@@ -1828,6 +1830,7 @@ static void msm_vfe40_restore_irq_mask(struct vfe_device *vfe_dev)
 	msm_camera_io_w(vfe_dev->error_info.overflow_recover_irq_mask1,
 		vfe_dev->vfe_base + 0x2C);
 }
+
 
 static void msm_vfe40_get_halt_restart_mask(uint32_t *irq0_mask,
 	uint32_t *irq1_mask)

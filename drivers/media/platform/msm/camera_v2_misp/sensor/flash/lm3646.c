@@ -91,6 +91,7 @@ static struct i2c_driver lm3646_i2c_driver;
 static bool dual_leds_test_mode = false;
 static char dual_leds_max_node = 0;
 
+
 static struct msm_camera_i2c_reg_array lm3646_init_array[] = {
 	{ENABLE_REGISTER, INDUCTOR_CURRENT_LIMMIT | MODE_BIT_STANDBY},
 };
@@ -240,6 +241,7 @@ static void msm_led_dual_torch_brightness_set(struct led_classdev *led_cdev,
 	}
 }
 
+
 static struct led_classdev msm_torch_led = {
 	.name			= "torch-light",
 	.brightness_set	= msm_led_torch_brightness_set,
@@ -274,6 +276,7 @@ static int32_t msm_lm3646_torch_create_classdev(struct device *dev ,
 	return 0;
 };
 
+
 static int32_t msm_lm3646_dual_leds_max_create_classdev(struct device *dev ,
 				void *data)
 {
@@ -307,6 +310,7 @@ static int32_t msm_lm3646_dual_leds_create_classdev(struct device *dev ,
 	return 0;
 };
 
+
 /****************************************************************************
 * FunctionName: msm_lm3646_clear_err_and_unlock;
 * Description : clear the error and unlock the IC ;
@@ -325,6 +329,7 @@ int msm_lm3646_clear_err_and_unlock(struct msm_led_flash_ctrl_t *fctrl)
 		pr_err("%s:%d fctrl NULL\n", __func__, __LINE__);
 		return -EINVAL;
 	}
+
 
 	if (fctrl->flash_i2c_client) 
 	{
@@ -356,6 +361,7 @@ int msm_lm3646_clear_err_and_unlock(struct msm_led_flash_ctrl_t *fctrl)
 		pr_err("%s:%d flash_i2c_client NULL\n", __func__, __LINE__);
 		return -EINVAL;
 	}
+
 
 	return 0;
 
@@ -529,6 +535,7 @@ int msm_flash_lm3646_led_on(struct msm_led_flash_ctrl_t *fctrl, void * pdata)
 	LM3646_DBG("%s:X mode=0x%x.\n", __func__, mode);
 	LM3646_DBG("%s regmaxcurrent = 0x%x regcurrentflash&0x7f =0x%x regcurrenttorch&0x7f = 0x%x\n",__func__,regmaxcurrent,regcurrentflash&0x7f,regcurrenttorch&0x7f);
 	LM3646_DBG("%s regmaxcurrent = 0x%x regcurrentflash =0x%x regcurrenttorch = 0x%x\n",__func__,regmaxcurrent,regcurrentflash,regcurrenttorch);
+
 
 	if (rc < 0)
 		pr_err("%s:%d i2c_write error: %d\n", __func__, __LINE__, rc);
@@ -788,6 +795,7 @@ static void __exit msm_flash_lm3646_exit(void)
 	return;
 }
 
+
 static struct msm_camera_i2c_client lm3646_i2c_client = {
 	.addr_type = MSM_CAMERA_I2C_BYTE_ADDR,
 };
@@ -832,6 +840,7 @@ static struct msm_camera_i2c_reg_setting lm3646_high_setting = {
 	.data_type = MSM_CAMERA_I2C_BYTE_DATA,
 	.delay = 0,
 };
+
 
 static struct msm_camera_i2c_reg_setting lm3646_torch_setting = {
 	.reg_setting = lm3646_torch_array,

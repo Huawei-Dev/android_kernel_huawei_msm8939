@@ -1,17 +1,4 @@
-/*************************************************
-  Copyright (C), 1988-1999, Huawei Tech. Co., Ltd.
-  File name        : Sensor_otp_common_if.c
-  Version           : Initial Draft
-  Date               : 2014/05/14
-  Description   : this file is used by driver to check if the otp
-            is supported by the driver.
-  Function List    :
-            is_exist_otp_function
-  History            :
-  1.Date            : 2014/05/14
-     Modification  : Created File
 
-*************************************************/
 
 //#define HW_CMR_LOGSWC 0   //file log switch set 0 off,default is 1 on
 #define HW_CMR_LOG_TAG "sensor_otp_common_if"

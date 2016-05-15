@@ -1431,6 +1431,7 @@ static void msm_vfe32_get_error_mask(uint32_t *error_mask0,
 	*error_mask1 = 0x007FFFFF;
 }
 
+
 static void msm_vfe32_restore_irq_mask(struct vfe_device *vfe_dev)
 {
 	msm_camera_io_w(vfe_dev->error_info.overflow_recover_irq_mask0,

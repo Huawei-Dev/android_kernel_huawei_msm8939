@@ -30,7 +30,7 @@
 #endif
 #endif /* CONFIG_HUAWEI_KERNEL */
 #ifdef CONFIG_HUAWEI_DSM
-#include <linux/dsm_pub.h>
+#include <dsm/dsm_pub.h>
 #endif/*CONFIG_HUAWEI_DSM*/
 
 #define CYTTSP5_LOADER_NAME "cyttsp5_loader"
@@ -230,6 +230,9 @@ static unsigned int cyttsp5_get_panel_name(char *panel_name, unsigned int length
 	case FW_TRULY:
 		strncpy(panel_name, "Truly", length);
 		break;
+	case FW_MUTTO:
+		strncpy(panel_name, "Mutto", length);
+		break;
     case FW_GIS:
         strncpy(panel_name, "Gis", length);
         break;
@@ -267,23 +270,20 @@ static void cyttsp5_calibrate_idacs(struct work_struct *calibration_work)
 		tp_log_err("%s:suspend_scanning fail, rc:%d\n", __func__, rc);
 		goto release;
 	}
-
 	for (mode = 0; mode < 3; mode++) {
 		rc = cmd->nonhid_cmd->calibrate_idacs(dev, 0, mode, &status);
 		if (rc < 0) {
 			tp_log_err("%s:calibrate_idacs fail, rc:%d, mode:%d\n", __func__, rc, mode);
-			goto release;
+			goto resume_scan;
 		}
 	}
+	tp_log_info("%s:%d Calibration Done\n", __func__,__LINE__);
 
+resume_scan:
 	rc = cmd->nonhid_cmd->resume_scanning(dev, 0);
 	if (rc < 0) {
 		tp_log_err("%s:resume_scanning fail, rc:%d\n", __func__, rc);
-		goto release;
 	}
-
-	tp_log_info("%s: Calibration Done\n", __func__);
-
 release:
 	cmd->release_exclusive(dev);
 exit:
@@ -302,6 +302,7 @@ static int cyttsp5_calibration_attention(struct device *dev)
 
 	return rc;
 }
+
 
 #endif /* CYTTSP5_FW_UPGRADE || CYTTSP5_TTCONFIG_UPGRADE */
 
@@ -617,13 +618,14 @@ exit:
 	if (!rc) {
 		cmd->request_restart(dev, true);
 	}
-
-	pm_runtime_put_sync(dev);
-
+	/* some cypress ic should take 30S to do firmware update, but phone only use 20s to finish boot up, 
+	   and phone have gone to sleep when boot 30s, if we send calibration comman when TP ic is in sleep model,
+	   calibration will fail and TP ic will going to die
+	   to fix this issue, we move pm_runtime_put_sync(dev); to the place after calibration complete */
 	if (wait_for_calibration_complete) {
 		wait_for_completion(&ld->calibration_complete);
 	}
-	
+	pm_runtime_put_sync(dev);
 	return rc;
 }
 
@@ -830,6 +832,7 @@ static void _cyttsp5_firmware_cont_builtin(const struct firmware *fw,
 	struct device *dev = context;
 	struct cyttsp5_loader_data *ld = cyttsp5_get_loader_data(dev);
 	struct cyttsp5_platform_data *pdata = cyttsp5_get_platform_data(dev);
+	struct cyttsp5_core_data *cd = dev_get_drvdata(dev);
 	int upgrade;
 
 	if (!fw) {
@@ -853,7 +856,14 @@ static void _cyttsp5_firmware_cont_builtin(const struct firmware *fw,
 					__func__, ld->si->cydata.fw_ver_conf);
 		goto _cyttsp5_firmware_cont_builtin_exit;
 	}
-	upgrade = cyttsp5_check_firmware_version_builtin(dev, fw);
+
+	if ( true == cd->config_crc_fail_flag ) {
+		upgrade = 1;
+		tp_log_info( "%s: IC config crc fail,will force upgrade bin\n", __func__);
+	} else {
+		upgrade = cyttsp5_check_firmware_version_builtin(dev, fw);
+	}
+
 	if (upgrade) {
 		_cyttsp5_firmware_cont(fw, dev);
 		ld->builtin_bin_fw_status = 0;
@@ -1327,6 +1337,7 @@ static int upgrade_ttconfig_from_platform(struct device *dev)
 	int rc = -ENOSYS;
 	int upgrade;
 
+
 	tp_log_info("%s %d:upgrade ttconfig from platform start.\n", 
 				__func__, __LINE__);
 	if (!ld->loader_pdata) {
@@ -1544,17 +1555,28 @@ static void cyttsp5_set_app_info(struct device * dev)
 	int panel_id = UNKNOW_PRODUCT_MODULE;
 	struct cyttsp5_core_data *cd = dev_get_drvdata(dev);
 	struct cyttsp5_cydata *cydata = &cd->sysinfo.cydata;
+	struct cyttsp5_platform_data *pdata = cyttsp5_get_platform_data(dev);
+	struct cyttsp5_core_platform_data *core_pdata = pdata->core_pdata;
 	
 	/* get panel name */
 	panel_id = cyttsp5_get_panel_id(dev);
 	cyttsp5_get_panel_name(panel_name, PANEL_NAME_LEN_MAX - 1, panel_id);
-	
-	snprintf(touch_info, APP_INFO_VALUE_LENTH - 1, 
-				"cyttsp5_%s_%d.%d.%d", 
-				panel_name, 
+
+	if ((core_pdata->chip_name) && (strcmp(core_pdata->chip_name, "CS448") == 0)) {
+		snprintf(touch_info, APP_INFO_VALUE_LENTH - 1,
+				"CS448_%s_%d.%d.%d",
+				panel_name,
 				cydata->fw_ver_major,
 				cydata->fw_ver_minor,
 				cydata->fw_ver_conf);
+	} else {
+		snprintf(touch_info, APP_INFO_VALUE_LENTH - 1,
+				"cyttsp5_%s_%d.%d.%d",
+				panel_name,
+				cydata->fw_ver_major,
+				cydata->fw_ver_minor,
+				cydata->fw_ver_conf);
+	}
 #ifdef CONFIG_APP_INFO
 	app_info_set("touch_panel", touch_info);
 #endif

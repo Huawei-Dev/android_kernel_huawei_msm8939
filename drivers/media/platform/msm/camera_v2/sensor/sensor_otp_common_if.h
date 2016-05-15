@@ -1,20 +1,4 @@
-/*************************************************
-  Copyright (C), 1988-1999, Huawei Tech. Co., Ltd.
-  File name        : Sensor_otp_common_if.h 
-  Version           : Initial Draft  
-  Date               : 2014/05/14
-  Description   : this file contions otp function we used. We 
-               define a struct that contion otp we support
-               and the otp function.
-  Function List    :  
-           is_exist_otp_function
-           s5k4e1_liteon_13p1_otp_func
-           ov5648_sunny_p5v18g_otp_func
-  History            : 
-  1.Date            : 2014/05/14
-     Modification  : Created File
 
-*************************************************/
 
 
 
@@ -45,6 +29,7 @@ extern int imx328_sunny_p13n10a_otp_func(struct msm_sensor_ctrl_t *s_ctrl, int i
 extern int ar1335_sunny_f13m01f_otp_func(struct msm_sensor_ctrl_t * s_ctrl, int index);
 extern int imx214_otp_func(struct msm_sensor_ctrl_t * s_ctrl, int index);
 extern int imx219_otp_func(struct msm_sensor_ctrl_t * s_ctrl, int index);
+extern int s5k3m2_otp_func(struct msm_sensor_ctrl_t * s_ctrl, int index);
 
 extern struct otp_function_t otp_function_lists [];
 

@@ -373,6 +373,7 @@ static int msm_csid_init(struct csid_device *csid_dev, uint32_t *csid_version)
 			&csid_clk_info[3], csid_clk_src_info,
 			csid_dev->num_clk_src_info);
 
+
 	rc = msm_cam_clk_enable(&csid_dev->pdev->dev,
 			csid_clk_info, csid_dev->csid_clk,
 			csid_dev->num_clk, 1);
@@ -670,6 +671,7 @@ static long msm_csid_subdev_ioctl(struct v4l2_subdev *sd,
 	mutex_unlock(&csid_dev->mutex);
 	return rc;
 }
+
 
 #ifdef CONFIG_COMPAT
 static int32_t msm_csid_cmd32(struct csid_device *csid_dev, void __user *arg)
@@ -1018,6 +1020,7 @@ static int csid_probe(struct platform_device *pdev)
 		pr_err("%s: msm_csid_get_clk_info() failed", __func__);
 		return -EFAULT;
 	}
+
 
 	new_csid_dev->mem = platform_get_resource_byname(pdev,
 					IORESOURCE_MEM, "csid");

@@ -63,6 +63,15 @@ static int hac_en_gpio = 0;
 
 static int msm8916_hac_switch = DEFUALT_HAC_SWITCH_VALUE;
 
+/*for cherry-vd SPK-PA ext buck-boost ctl*/
+#define DEFUALT_SPK_SWITCH_VALUE 0x0
+#define SPK_ON 1
+#define GPIO_PULL_UP_FLAG 1
+#define GPIO_PULL_DOWN_FLAG 0
+
+static int spk_en_gpio = 0;
+static int ext_spk_switch = DEFUALT_SPK_SWITCH_VALUE;
+
 static int msm_btsco_rate = BTSCO_RATE_8KHZ;
 static int msm_btsco_ch = 1;
 
@@ -1027,11 +1036,111 @@ static int msm_external_pa_put(struct snd_kcontrol *kcontrol, struct snd_ctl_ele
         {
             ad_loge("%s: afe_set_lpass_clock QUATERNARY_MI2S_TX failed\n", __func__);
             //return ret;
-        } 
+        }
+
+        if (atomic_read(&pdata->mclk_rsc_ref) > 0) 
+        {
+			atomic_dec(&pdata->mclk_rsc_ref);
+			ad_logd("%s: mclk_rsc_ref %d\n", __func__, atomic_read(&pdata->mclk_rsc_ref));
+		}
+
+		if ((atomic_read(&quat_mi2s_clk_ref) == 0) && (atomic_read(&pdata->mclk_rsc_ref) == 0)) 
+	    {
+			msm8x16_enable_codec_ext_clk(codec, 0, true);
+			ret = pinctrl_select_state(pinctrl_info.pinctrl, pinctrl_info.cdc_lines_sus);
+			if (ret < 0)
+				ad_loge("%s: error at pinctrl state select\n", __func__);
+		}
+ 
 	}
 	return ret;
 }
+/* The function to pull up GPIO 0 to enable SPK_EXT_Boost*/
+static void spk_gpio_on(void)
+{
+	int ret = 0;
 
+	if (spk_en_gpio < 0)
+	{
+		pr_err("%s: spk_en_gpio is negative\n", __func__);
+		return;
+	}
+	
+	ret = gpio_request(spk_en_gpio, "spk_en_gpio");
+	if (ret)
+	{
+		pr_err("%s: Failed to configure spk enable "
+			"gpio %u\n", __func__, spk_en_gpio);
+		return;
+	}
+
+	pr_debug("%s: Enable SPK gpio %u\n", __func__, spk_en_gpio);
+	gpio_direction_output(spk_en_gpio, GPIO_PULL_UP_FLAG);
+}
+
+/* The function to pull down GPIO 0 to disable SPK_EXT_Boost*/
+static void spk_gpio_off(void)
+{
+	if (spk_en_gpio < 0)
+	{
+ 		pr_err("%s: spk_en_gpio is negative\n", __func__);
+		return;
+	}
+
+	pr_debug("%s: Pull down and free spk enable gpio %u\n",
+			__func__, spk_en_gpio);
+	
+	gpio_direction_output(spk_en_gpio, GPIO_PULL_DOWN_FLAG);
+	gpio_free(spk_en_gpio);
+}
+
+static const char *spk_switch_text[] = {"OFF","ON"};
+
+static const struct soc_enum ext_spk_switch_enum[] = {
+	SOC_ENUM_SINGLE_EXT(ARRAY_SIZE(spk_switch_text),
+						spk_switch_text),
+};
+
+/* The function to get SPK status */
+static int ext_spk_switch_get(struct snd_kcontrol *kcontrol,
+					struct snd_ctl_elem_value *ucontrol)
+{
+	if(NULL == kcontrol || NULL == ucontrol)
+	{
+		pr_err("%s: input pointer is null\n", __func__);
+	}
+
+	pr_debug("%s: ext_spk_switch = %d\n", __func__,
+			 ext_spk_switch);
+	ucontrol->value.integer.value[0] = ext_spk_switch;
+	return 0;
+}
+
+/* The function to set SPK status */
+static int ext_spk_switch_put(struct snd_kcontrol *kcontrol,
+					struct snd_ctl_elem_value *ucontrol)
+{
+	int ret = 0;
+	if(NULL == kcontrol || NULL == ucontrol)
+	{
+		pr_err("%s: input pointer is null\n", __func__);
+	}
+	ext_spk_switch = ucontrol->value.integer.value[0];
+	pr_debug("%s: ext_spk_switch = %d"
+			" ucontrol->value.integer.value[0] = %d\n", __func__,
+			ext_spk_switch,
+			 (int) ucontrol->value.integer.value[0]);
+	if(ext_spk_switch)
+	{
+		spk_gpio_on();
+		ret = SPK_ON;
+	}
+	else
+	{
+		spk_gpio_off();
+	}
+	return ret;
+}
 static const struct soc_enum msm_snd_enum[] = {
 	SOC_ENUM_SINGLE_EXT(2, rx_bit_format_text),
 	SOC_ENUM_SINGLE_EXT(2, ter_mi2s_tx_ch_text),
@@ -1136,6 +1245,8 @@ static const struct snd_kcontrol_new msm_snd_controls[] = {
 			msm8916_hac_switch_get, msm8916_hac_switch_put),
 	SOC_ENUM_EXT("Initial external PA", msm_external_pa_enum[0],
 	     msm_external_pa_get, msm_external_pa_put),
+	SOC_ENUM_EXT("SPK",ext_spk_switch_enum[0],
+	     ext_spk_switch_get,ext_spk_switch_put),
 };
 
 static int msm8x16_mclk_event(struct snd_soc_dapm_widget *w,
@@ -2690,10 +2801,11 @@ static int msm8x16_asoc_machine_probe(struct platform_device *pdev)
 	const char *hs_micbias_type = "qcom,msm-hs-micbias-type";
 	const char *ext_pa = "qcom,msm-ext-pa";
 	const char *mclk = "qcom,msm-mclk-freq";
-    const char *spk_ext_pa_boost_gpio = "qcom,spk-ext-pa-boost-gpio";
-    const char *spk_ext_pa_enable_gpio = "qcom,spk-ext-pa-enable-gpio";
-    const char *spk_ext_pa_switch_vdd_gpio = "qcom,spk-ext-pa-switch-vdd-gpio";
-    const char *spk_ext_pa_switch_in_gpio = "qcom,spk-ext-pa-switch-in-gpio";
+	const char *spk_ext_pa_boost_gpio = "qcom,spk-ext-pa-boost-gpio";
+	const char *spk_ext_pa_enable_gpio = "qcom,spk-ext-pa-enable-gpio";
+	const char *spk_ext_pa_switch_vdd_gpio = "qcom,spk-ext-pa-switch-vdd-gpio";
+	const char *spk_ext_pa_switch_in_gpio = "qcom,spk-ext-pa-switch-in-gpio";
+	const char *pa_enable_gpio_on_delayms = "qcom,pa-enable-gpio-on-delayms";
 	const char *ptr = NULL;
 	const char *type = NULL;
 	const char *ext_pa_str = NULL;
@@ -2901,6 +3013,8 @@ static int msm8x16_asoc_machine_probe(struct platform_device *pdev)
             if(ret < 0)
             {
                 ad_loge("%s: gpio_request spk_ext_pa_boost_gpio failed",__func__);
+            }else{
+               gpio_direction_output(pdata->spk_ext_pa_boost_gpio, 0);
             }
         }
     }
@@ -2915,6 +3029,8 @@ static int msm8x16_asoc_machine_probe(struct platform_device *pdev)
             if(ret < 0)
             {
                 ad_loge("%s: gpio_request spk_ext_pa_enable_gpio failed",__func__);
+            }else{
+                gpio_direction_output(pdata->spk_ext_pa_enable_gpio, 0);
             }
         }
     }
@@ -2930,6 +3046,8 @@ static int msm8x16_asoc_machine_probe(struct platform_device *pdev)
             if(ret < 0)
             {
                 ad_loge("%s: gpio_request spk_ext_pa_switch_vdd_gpio failed",__func__);
+            }else{
+                gpio_direction_output(pdata->spk_ext_pa_switch_vdd_gpio, 0);
             }
         }
     }
@@ -2945,9 +3063,19 @@ static int msm8x16_asoc_machine_probe(struct platform_device *pdev)
             if(ret < 0)
             {
                 ad_loge("%s: gpio_request spk_ext_pa_switch_in_gpio failed",__func__);
+            }else{
+               gpio_direction_output(pdata->spk_ext_pa_switch_in_gpio, 0);
             }
-		}
+	  }
 	}
+
+	ret = of_property_read_u32(pdev->dev.of_node, pa_enable_gpio_on_delayms, &pdata->spk_pa_enable_delaytime);
+	if (ret) {
+		ad_loge("%s: missing %s in dt node, then delay 0ms\n", __func__, pa_enable_gpio_on_delayms);
+		pdata->spk_pa_enable_delaytime = 0;
+	}
+
+	INIT_DELAYED_WORK(&pdata->spk_pa_enable_dwork, spk_pa_enable_set_fn);
 
 	ret = of_get_named_gpio_flags(of_audio_node, "huawei,hac_gpio", 0, NULL);
 	if (ret < 0) {
@@ -2962,6 +3090,12 @@ static int msm8x16_asoc_machine_probe(struct platform_device *pdev)
 	if (ret) {
 		ad_loge("%s: Failed to configure hac enable "
 				"gpio %u\n", __func__, hac_en_gpio);
+	}
+	/*Get GPIO num for SPK-PA ext buck-boost ctl*/
+	spk_en_gpio = of_get_named_gpio(pdev->dev.of_node,
+					"qcom,spk-buck-boost", 0);
+	if (spk_en_gpio < 0) {
+		pr_err("%s: failed to get spk_en_gpio\n", __func__);
 	}
 	return 0;
 err:
@@ -2995,16 +3129,19 @@ static int msm8x16_asoc_machine_remove(struct platform_device *pdev)
 		iounmap(pdata->vaddr_gpio_mux_mic_ctl);
 	snd_soc_unregister_card(card);
 	gpio_free(hac_en_gpio);
-    if((pdata->spk_ext_pa_boost_gpio) >= 0)
-        gpio_free(pdata->spk_ext_pa_boost_gpio);
-    if((pdata->spk_ext_pa_enable_gpio) >= 0)
-        gpio_free(pdata->spk_ext_pa_enable_gpio);
-    if((pdata->spk_ext_pa_switch_vdd_gpio)>= 0)
-        gpio_free(pdata->spk_ext_pa_switch_vdd_gpio);
-    if((pdata->spk_ext_pa_switch_in_gpio)>= 0)
-        gpio_free(pdata->spk_ext_pa_switch_in_gpio);
-    mutex_destroy(&pdata->cdc_mclk_mutex);
-    return 0;
+	cancel_delayed_work_sync(&pdata->spk_pa_enable_dwork);
+
+	if((pdata->spk_ext_pa_boost_gpio) >= 0)
+	        gpio_free(pdata->spk_ext_pa_boost_gpio);
+	if((pdata->spk_ext_pa_enable_gpio) >= 0)
+	        gpio_free(pdata->spk_ext_pa_enable_gpio);
+	if((pdata->spk_ext_pa_switch_vdd_gpio)>= 0)
+	        gpio_free(pdata->spk_ext_pa_switch_vdd_gpio);
+	if((pdata->spk_ext_pa_switch_in_gpio)>= 0)
+	        gpio_free(pdata->spk_ext_pa_switch_in_gpio);
+
+	mutex_destroy(&pdata->cdc_mclk_mutex);
+	return 0;
 }
 
 static const struct of_device_id msm8x16_asoc_machine_of_match[]  = {

@@ -1,15 +1,4 @@
-/************************************************************
-  Copyright (C), 1988-2015, Huawei Tech. Co., Ltd.
-  FileName: sensor_otp_ar1335_sunny_f13m01f.c
-  Version :Initial Draft
-  Date: 2014/07/08
-  Description:    this file contion several functions to detect ar1335 otp properties
-  Version:         Initial Draft
-  History:
-   History        :
-   1.Date        : 2015/06/23
-   Modification : Created function
-***********************************************************/
+
 
 //#define HW_CMR_LOGSWC 0   //file log switch set 0 off,default is 1 on
 #define HW_CMR_LOG_TAG "sensor_otp_ar1335_sunny_f13m01f"

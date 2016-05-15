@@ -53,9 +53,9 @@
 static unsigned short bh1745_atime[6] = {160, 320, 640, 1280, 2560, 5120};
 static unsigned char bh1745_again[3] = {1, 2, 16};
 static int dim_flag = 0;
-static long cofficient_judge = 242;
-static long cofficient_red[2]={1565, 932};
-static long cofficient_green[2] = {9053, 8607};
+static long cofficient_judge = 246;
+static long cofficient_red[2]={423, 234};
+static long cofficient_green[2] = {2399, 2227};
 static long cofficient_blue[2] = {0,0};
 enum tp_color_id{
 	GOLD = 0,
@@ -135,6 +135,7 @@ struct tp_lx_cal_parameter{
 }tp_lx_cal_parameter;
 
 struct tp_lx_cal_parameter tp_module_parameter[MODULE_MANUFACTURE_NUMBER] = {{.tp_module_id = 0x55},{.tp_module_id = 0x55},{.tp_module_id = 0x55}};
+
 
 struct rgb_bh1745_data {
 	struct i2c_client *client;
@@ -1420,6 +1421,7 @@ static int sensor_parse_dt(struct device *dev,
 	const char *raw_data0_dts = NULL;
 	long *ptr = NULL;
 
+
 	/* set functions of platform data */
 	pdata->init = sensor_platform_hw_init;
 	pdata->exit = sensor_platform_hw_exit;
@@ -1432,7 +1434,7 @@ static int sensor_parse_dt(struct device *dev,
 	}
 	tp_moudle_count = tmp;
 
-	BH1745_INFO("%s:%d read lux cal parameter count from dtsi  is %d\n", __FUNCTION__, __LINE__, tp_moudle_count);
+	BH1745_FLOW("%s:%d read lux cal parameter count from dtsi  is %d\n", __FUNCTION__, __LINE__, tp_moudle_count);
 
 	if(tp_moudle_count > MODULE_MANUFACTURE_NUMBER){
 		BH1745_ERR("%s,line %d:tp_moudle_count from dtsi too large: %d\n",__func__,__LINE__, tp_moudle_count);
@@ -1445,7 +1447,7 @@ static int sensor_parse_dt(struct device *dev,
 			BH1745_ERR("%s:%d bh1745,junda_data0 length invaild or dts number is larger than:%d\n",__FUNCTION__,__LINE__,array_len);
 			return array_len;
 		}
-		BH1745_INFO("%s:%d read lux cal parameter count from dtsi  is %d\n", __FUNCTION__, __LINE__, array_len);
+		BH1745_FLOW("%s:%d read lux cal parameter count from dtsi  is %d\n", __FUNCTION__, __LINE__, array_len);
 
 		ptr = (long *)&tp_module_parameter[i];
 
@@ -1456,7 +1458,7 @@ static int sensor_parse_dt(struct device *dev,
 				return retval;
 			}
 			ptr[index]  = simple_strtol(raw_data0_dts, NULL, 10);
-			BH1745_INFO("%s:%d lux cal parameter from dtsi  is %ld\n", __FUNCTION__, __LINE__, ptr[index]);
+			BH1745_FLOW("%s:%d lux cal parameter from dtsi  is %ld\n", __FUNCTION__, __LINE__, ptr[index]);
 		}
 	}
 

@@ -5,6 +5,7 @@
  *
  * Copyright: (C) 2014 huawei.
  *
+ * Author: sjm
  *
 **********************************************************/
 
@@ -23,10 +24,14 @@ extern int debug_output;
 			 printk("[DSM] "format,## __VA_ARGS__);\
 	} while (0)
 
+
 #define DSM_LOG_INFO(format, ...)		printk("[DSM] "format,## __VA_ARGS__)
 #define DSM_LOG_ERR(format, ...)		printk("[DSM] "format,## __VA_ARGS__)
 
-#define CLIENT_NAME_LEN		(32)
+#define CLIENT_NAME_LEN		(32) //max client name length
+#define DSM_MAX_DEVICE_NAME_LEN				(32) //max device name length
+#define DSM_MAX_MODULE_NAME_LEN				(4)  //max module name length
+#define DSM_MAX_IC_NAME_LEN					(4)  //max ic name length
 
 /*dsm error no define*/
 #define DSM_ERR_NO_ERROR		(0)
@@ -45,7 +50,9 @@ extern int debug_output;
 #define DSM_TP_F54_PDT_ERROR_NO 			(20007)		// fail to read f54 pdt
 #define DSM_TP_PDT_PROPS_ERROR_NO 			(20008)		// fail to read pdt props
 #define DSM_TP_F34_READ_QUERIES_ERROR_NO 	(20009)		// fail to read f34 queries
+
 #define DSM_TP_CYTTSP5_WAKEUP_ERROR_NO 		(20010)		// cypress ic wakeup fail
+
 /* LCD error numbers */
 /* modify lcd error macro */
 #define DSM_LCD_MIPI_ERROR_NO				(20100)
@@ -73,17 +80,14 @@ extern int debug_output;
 
 #define DSM_ERR_SDIO_RW_ERROR				(20300)
 #define DSM_ERR_SENSORHUB_IPC_TIMEOUT		(20400)
+
+/*selinux_dmd*/
+#define DSM_SELINUX_ERROR_NO                  (20901)
+
 //update fingerprint dmd error code
 #define DSM_FINGERPRINT_BASE_ERROR                    21600
-#define DSM_FINGERPRINT_RESET_ERROR_NO                (DSM_FINGERPRINT_BASE_ERROR)
-#define DSM_FINGERPRINT_SPISYNC_ERROR_NO              (DSM_FINGERPRINT_BASE_ERROR+1)
-#define DSM_FINGERPRINT_IRQ_AFTER_CMD_ERROR_NO        (DSM_FINGERPRINT_BASE_ERROR+2)
 #define DSM_FINGERPRINT_TEST_DEADPIXELS_ERROR_NO      (DSM_FINGERPRINT_BASE_ERROR+3)
-#define DSM_FINGERPRINT_SPI_ESHUTDOWN_ERROR_NO        (DSM_FINGERPRINT_BASE_ERROR+4)//-ESHUTDOWN
-#define DSM_FINGERPRINT_SPI_EBUSY_ERROR_NO            (DSM_FINGERPRINT_BASE_ERROR+5)//-EBUSY
-#define DSM_FINGERPRINT_SPI_EINVAL_ERROR_NO           (DSM_FINGERPRINT_BASE_ERROR+6)//-EINVAL
-#define DSM_FINGERPRINT_SPI_EIO_ERROR_NO              (DSM_FINGERPRINT_BASE_ERROR+7)//-EIO
-#define DSM_FINGERPRINT_SPI_EINPROGRESS_ERROR_NO      (DSM_FINGERPRINT_BASE_ERROR+8)//-EINPROGRESS
+#define DSM_FINGERPRINT_PROBE_FAIL_ERROR_NO           (DSM_FINGERPRINT_BASE_ERROR+8)//probe fail
 #define DSM_FINGERPRINT_DIFF_DEADPIXELS_ERROR_NO      (DSM_FINGERPRINT_BASE_ERROR+9)//FPC_1020_MIN_CHECKER_DIFF_ERROR
 #define DSM_FINGERPRINT_MANY_DEADPIXELS_ERROR_NO      (DSM_FINGERPRINT_BASE_ERROR+10)//FPC_1020_TOO_MANY_DEADPIXEL_ERROR
 /* delete huawei define */
@@ -109,8 +113,10 @@ enum DSM_SENSOR_ERR_TYPES {
 	DSM_LPS_WRONG_IRQ_ERROR,
 	DSM_LPS_THRESHOLD_ERROR,
 	DSM_LPS_ENABLED_IRQ_ERROR,
+	
 	DSM_LPS_ENABLED_ERROR,
 	DSM_LPS_THRESHOLD_SIZE_ERROR,
+	
 	/* for monitor compass 21116 21117 21118 21119 .... */
 	DSM_MS_I2C_ERROR = DSM_MS_BASE_ERR,
 	DSM_MS_DATA_ERROR,
@@ -161,7 +167,7 @@ enum DSM_KEYS_TYPE{
 #define DSM_CAMERA_I2C_ERR							(DSM_CAMERA_ERROR + 2)
 #define DSM_CAMERA_CHIP_ID_NOT_MATCH				(DSM_CAMERA_ERROR + 3)
 #define DSM_CAMERA_OTP_ERR							(DSM_CAMERA_ERROR + 4)
-//delete DSM_CAMERA_CPP_BUFF_ERR
+#define DSM_CAMERA_CPP_BUFF_ERR						(DSM_CAMERA_ERROR + 5)
 #define DSM_CAMERA_SENSOR_NO_FRAME                  (DSM_CAMERA_ERROR + 6)
 #define DSM_CAMERA_LED_FLASH_CIRCUIT_ERR            (DSM_CAMERA_ERROR + 7)
 #define DSM_CAMERA_LED_FLASH_OVER_TEMPERATURE       (DSM_CAMERA_ERROR + 8)
@@ -202,22 +208,27 @@ enum DSM_KEYS_TYPE{
 #define CLIENT_NAME_NFC	"dsm_nfc"
 #define DSM_NFC_ERROR_NO                                               (30300)
 #define DSM_NFC_I2C_WRITE_ERROR_NO                                     (DSM_NFC_ERROR_NO)
-#define DSM_NFC_I2C_WRITE_EOPNOTSUPP_ERROR_NO              (DSM_NFC_ERROR_NO + 1)
-#define DSM_NFC_I2C_WRITE_EREMOTEIO_ERROR_NO                 (DSM_NFC_ERROR_NO + 2)
-#define DSM_NFC_I2C_READ_ERROR_NO                                       (DSM_NFC_ERROR_NO + 3)
+#define DSM_NFC_I2C_READ_ERROR_NO                               (DSM_NFC_ERROR_NO + 1)
+#define DSM_NFC_CLK_ENABLE_ERROR_NO                            (DSM_NFC_ERROR_NO + 2)
+#define DSM_NFC_I2C_WRITE_EOPNOTSUPP_ERROR_NO                                (DSM_NFC_ERROR_NO + 3)
 #define DSM_NFC_I2C_READ_EOPNOTSUPP_ERROR_NO                 (DSM_NFC_ERROR_NO + 4)
-#define DSM_NFC_I2C_READ_EREMOTEIO_ERROR_NO                   (DSM_NFC_ERROR_NO + 5)
-#define DSM_NFC_CLK_ENABLE_ERROR_NO                                    (DSM_NFC_ERROR_NO + 6)
-
-#define DSM_NFC_CHECK_I2C_WRITE_ERROR_NO                               (DSM_NFC_ERROR_NO + 7)
-#define DSM_NFC_CHECK_I2C_WRITE_EOPNOTSUPP_ERROR_NO                    (DSM_NFC_ERROR_NO + 8)
-#define DSM_NFC_CHECK_I2C_WRITE_EREMOTEIO_ERROR_NO                     (DSM_NFC_ERROR_NO + 9)
-#define DSM_NFC_FW_DOWNLOAD_ERROR_NO                                    (DSM_NFC_ERROR_NO + 10)
-#define DSM_NFC_HAL_OPEN_FAILED_ERROR_NO                                (DSM_NFC_ERROR_NO + 11)
-#define DSM_NFC_POST_INIT_FAILED_ERROR_NO                               (DSM_NFC_ERROR_NO + 12)
-#define DSM_NFC_NFCC_TRANSPORT_ERROR_NO                                 (DSM_NFC_ERROR_NO + 13)
-#define DSM_NFC_NFCC_CMD_TIMEOUT_ERROR_NO                               (DSM_NFC_ERROR_NO + 14)
-#define DSM_NFC_SIM_CHECK_ERROR_NO                               (DSM_NFC_ERROR_NO + 15)
+#define DSM_NFC_I2C_WRITE_EREMOTEIO_ERROR_NO                   (DSM_NFC_ERROR_NO + 5)
+#define DSM_NFC_I2C_READ_EREMOTEIO_ERROR_NO                                 (DSM_NFC_ERROR_NO + 6)
+#define DSM_NFC_RD_I2C_WRITE_ERROR_NO                                     (DSM_NFC_ERROR_NO + 7)
+#define DSM_NFC_RD_I2C_READ_ERROR_NO                                      (DSM_NFC_ERROR_NO + 8)
+#define DSM_NFC_RD_I2C_WRITE_EOPNOTSUPP_ERROR_NO                           (DSM_NFC_ERROR_NO + 9)
+#define DSM_NFC_RD_I2C_READ_EOPNOTSUPP_ERROR_NO                                    (DSM_NFC_ERROR_NO + 10)
+#define DSM_NFC_RD_I2C_WRITE_EREMOTEIO_ERROR_NO                                (DSM_NFC_ERROR_NO + 11)
+#define DSM_NFC_RD_I2C_READ_EREMOTEIO_ERROR_NO                               (DSM_NFC_ERROR_NO + 12)
+#define DSM_NFC_CHECK_I2C_WRITE_ERROR_NO                                 (DSM_NFC_ERROR_NO + 13)
+#define DSM_NFC_CHECK_I2C_WRITE_EOPNOTSUPP_ERROR_NO                               (DSM_NFC_ERROR_NO + 14)
+#define DSM_NFC_CHECK_I2C_WRITE_EREMOTEIO_ERROR_NO                               (DSM_NFC_ERROR_NO + 15)
+#define DSM_NFC_FW_DOWNLOAD_ERROR_NO                               (DSM_NFC_ERROR_NO + 16)
+#define DSM_NFC_HAL_OPEN_FAILED_ERROR_NO                               (DSM_NFC_ERROR_NO + 17)
+#define DSM_NFC_POST_INIT_FAILED_ERROR_NO                               (DSM_NFC_ERROR_NO + 18)
+#define DSM_NFC_NFCC_TRANSPORT_ERROR_NO                               (DSM_NFC_ERROR_NO + 19)
+#define DSM_NFC_NFCC_CMD_TIMEOUT_ERROR_NO                               (DSM_NFC_ERROR_NO + 20)
+#define DSM_NFC_SIM_CHECK_ERROR_NO                               (DSM_NFC_ERROR_NO + 21)
 #ifdef CONFIG_HUAWEI_DSM
 enum DSM_FS_ERR
 {
@@ -238,14 +249,19 @@ struct dsm_client_ops{
 
 struct dsm_dev{
 	const char *name;
+	const char *device_name;
+	const char *ic_name;
+	const char *module_name;
 	struct dsm_client_ops *fops;
 	size_t buff_size;
 };
 
-/* one client */
 struct dsm_client{
 	void *driver_data;
-	char client_name[CLIENT_NAME_LEN];
+	const char *client_name;
+	const char *device_name;
+	const char *ic_name;
+	const char *module_name;
 	int client_id;
 	int error_no;
 	unsigned long buff_flag;
@@ -268,8 +284,9 @@ struct dsm_extern_client{
 #ifdef CONFIG_HUAWEI_DSM
 struct dsm_client *dsm_register_client (struct dsm_dev *dev);
 void dsm_unregister_client (struct dsm_client *dsm_client,struct dsm_dev *dev);
-
+struct dsm_client *dsm_find_client(const char *dsm_name);
 int dsm_client_ocuppy(struct dsm_client *client);
+int dsm_client_unocuppy(struct dsm_client *client);
 int dsm_client_record(struct dsm_client *client, const char *fmt, ...);
 int dsm_client_copy(struct dsm_client *client, void *src, int sz);
 void dsm_client_notify(struct dsm_client *client, int error_no);
@@ -279,10 +296,19 @@ static inline struct dsm_client *dsm_register_client (struct dsm_dev *dev)
 {
 	return NULL;
 }
+static inline struct dsm_client *dsm_find_client(char *dsm_name)
+{
+	return NULL;
+}
 static inline int dsm_client_ocuppy(struct dsm_client *client)
 {
 	return 1;
 }
+static inline int dsm_client_unocuppy(struct dsm_client *client)
+{
+	return 0;
+}
+
 static inline int dsm_client_record(struct dsm_client *client, const char *fmt, ...)
 {
 	return 0;

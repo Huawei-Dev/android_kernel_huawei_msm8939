@@ -248,6 +248,7 @@ static void free_virtual_keys(struct cyttsp5_virtual_keys *vkeys)
 		sysfs_remove_file(board_properties_kobj,
 			&vkeys->kobj_attr.attr);
 
+
 	kobject_del(board_properties_kobj);
 	board_properties_kobj = NULL;
 
@@ -303,6 +304,42 @@ static void *create_and_get_mt_pdata(struct device_node *dev_node)
 		tp_log_info("%s %d:pdata->vkeys_y is %d\n", __func__, __LINE__, value);
 	} else {
 		tp_log_err("%s %d:[cy,vkeys_y] read fail, rc = %d\n", 
+					__func__, __LINE__, rc);
+	}
+
+	rc = of_property_read_u32(dev_node, "cy,x_max", &value);
+	if (!rc) {
+		pdata->x_max = value;
+		tp_log_info("%s %d:pdata->x_max is %d\n", __func__, __LINE__, value);
+	} else {
+		tp_log_err("%s %d:[cy,x_max] not found,will ignore, rc = %d\n",
+					__func__, __LINE__, rc);
+	}
+
+	rc = of_property_read_u32(dev_node, "cy,y_max", &value);
+	if (!rc) {
+		pdata->y_max = value;
+		tp_log_info("%s %d:pdata->y_max is %d\n", __func__, __LINE__, value);
+	} else {
+		tp_log_err("%s %d:[cy,y_max] not found,will ignore, rc = %d\n",
+					__func__, __LINE__, rc);
+	}
+
+	rc = of_property_read_u32(dev_node, "cy,p_max", &value);
+	if (!rc) {
+		pdata->p_max = value;
+		tp_log_info("%s %d:pdata->p_max is %d\n", __func__, __LINE__, value);
+	} else {
+		tp_log_err("%s %d:[cy,p_max] not found,will ignore, rc = %d\n",
+					__func__, __LINE__, rc);
+	}
+
+	rc = of_property_read_u32(dev_node, "cy,slots_max", &value);
+	if (!rc) {
+		pdata->slots_max = value;
+		tp_log_info("%s %d:pdata->slots_max is %d\n", __func__, __LINE__, value);
+	} else {
+		tp_log_err("%s %d:[cy,slots_max] not found,will ignore, rc = %d\n",
 					__func__, __LINE__, rc);
 	}
 
@@ -794,18 +831,30 @@ static struct cyttsp5_core_platform_data *create_and_get_core_pdata(
 
 	pdata->glove_support = get_of_u32_val(core_node, "cy,glove_support", 0);
 	pdata->holster_support = get_of_u32_val(core_node, "cy,holster_support", 0);
-
+	pdata->mmi_test_support = get_of_u32_val(core_node, "cy,mmi_test_support", 0);
 	pdata->wakeup_keys = create_and_get_wakeup_keys(core_node);
 
 	pdata->fw_upgrade_start_ver = get_of_u32_val(core_node, "cy,fw_upgrade_start_ver", 0);
 	
 	pdata->fw_update_logic = get_of_u32_val(core_node, "cy,fw_uptate_logic", 0);
 
+	pdata->input_register_early= get_of_u32_val(core_node, "cy,input_register_early", 0);
+	tp_log_info("%s:input_register_early = %d\n",__func__,pdata->input_register_early);
+
 	/* parse product name */
 	rc = of_property_read_string(core_node, "cy,product_name", &pdata->product_name);
 	if (rc){
 		tp_log_err("%s %d:Read name product_name fail, rc = %d\n", __func__, __LINE__, rc);			
 		pdata->product_name = "Unknow";
+	}
+
+	/* parse product name */
+	rc = of_property_read_string(core_node, "cy,chip_name", &pdata->chip_name);
+	if (rc){
+		tp_log_info("%s %d:Read name chip_name fail rc = %d\n", __func__, __LINE__, rc);
+        pdata->chip_name = NULL;
+	} else {
+        tp_log_info("%s :chip_name = %s\n", __func__, pdata->chip_name);
 	}
 
 	pdata->power_config = create_and_get_power_config(core_node);

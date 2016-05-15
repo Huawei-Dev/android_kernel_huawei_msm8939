@@ -2,6 +2,7 @@
 
 /*move hw_tp_common.h to touch_screen floder*/
 
+
 #ifndef __LINUX_FT6X06_TS_H__
 #define __LINUX_FT6X06_TS_H__
 /*move hw_tp_common.h to touch_screen floder*/

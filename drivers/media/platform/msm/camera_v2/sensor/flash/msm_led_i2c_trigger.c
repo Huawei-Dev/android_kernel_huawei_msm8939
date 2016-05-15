@@ -191,6 +191,7 @@ static int msm_flash_pinctrl_init(struct msm_led_flash_ctrl_t *ctrl)
 	return 0;
 }
 
+
 int msm_flash_led_init(struct msm_led_flash_ctrl_t *fctrl)
 {
 	int rc = 0;
@@ -372,6 +373,7 @@ int msm_flash_led_low(struct msm_led_flash_ctrl_t *fctrl)
 		power_info->gpio_conf->gpio_num_info->
 		gpio_num[SENSOR_GPIO_FL_NOW],
 		GPIO_OUT_HIGH);
+
 
 	if (fctrl->flash_i2c_client && fctrl->reg_setting) {
 		rc = fctrl->flash_i2c_client->i2c_func_tbl->i2c_write_table(

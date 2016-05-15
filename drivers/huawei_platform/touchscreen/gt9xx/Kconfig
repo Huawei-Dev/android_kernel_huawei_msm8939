@@ -1,4 +1,3 @@
-
 #
 # Goodix GT9xx Touchscreen driver
 #
@@ -25,6 +24,7 @@ config GT9XX_TOUCHPANEL_UPDATE
 	  This enables support for firmware update for Goodix GT9xx
 	  touchscreens.
 
+
 config GT9XX_TOUCHPANEL_DEBUG
 	tristate "Goodix GT9xx Tools for debuging"
 	depends on GT9XX_TOUCHPANEL_DRIVER
@@ -39,4 +39,3 @@ config GT9XX_TOUCHPANEL_OPENSHORT_TEST
 	help
 	  This is open and short test support for Goodix GT9xx
 	  touchscreens.
-

@@ -134,6 +134,9 @@
 #define ANA1_SET_OFILM_SH4_0x7E    0x0000
 #define ANA1_SET_OFILM_SH4_0x7F    0x0000
 
+
+
+
 #define ANA2_SET_OFILM_SH4_0x00    0x0048
 #define ANA2_SET_OFILM_SH4_0x01    0x0000
 #define ANA2_SET_OFILM_SH4_0x02    0x1111
@@ -248,6 +251,11 @@
 #define ANA2_SET_OFILM_SH4_0x6E    0x0000
 #define ANA2_SET_OFILM_SH4_0x6F    0x0000
 #define ANA2_SET_OFILM_SH4_0x70    0x0010
+
+
+
+
+
 
 #define  NUM_SENSOR_OFILM       40
 #define  NUM_KEY_OFILM          2

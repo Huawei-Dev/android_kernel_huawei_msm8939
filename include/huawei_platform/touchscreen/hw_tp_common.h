@@ -16,11 +16,13 @@
 /*IC type*/
 #define IC_TYPE_3207 3207
 
-#define FW_OFILM_STR "000"
-#define FW_EELY_STR "001"
-#define FW_TRULY_STR "002"
-#define FW_JUNDA_STR "005"
-#define FW_LENSONE_STR "006"
+#define FW_OFILM_STR	"000"
+#define FW_EELY_STR	"001"
+#define FW_TRULY_STR	"002"
+#define FW_MUTTO_STR	"003"
+#define FW_GIS_STR	"004"
+#define FW_JUNDA_STR	"005"
+#define FW_LENSONE_STR	"006"
 
 #define MODULE_STR_LEN 3
 
@@ -31,6 +33,7 @@ enum f54_product_module_name {
 	FW_OFILM = 0,
 	FW_EELY = 1,
 	FW_TRULY = 2,
+	FW_MUTTO = 3,
 	/*Modify G760L tp_cap threshold get from V3*/
 	FW_GIS = 4,
 
@@ -56,9 +59,9 @@ struct kobject* tp_get_glove_func_obj(void);
 
 /* add phone name so that a tp-driver can behave differentlly
 accroding to different products*/
-#define PHONE_NAME_Y550      "Y550"
+#define PHONE_NAME_Y550     "Y550"
 #define PHONE_NAME_ULC02    "ULC02"
-#define PHONE_NAME_RIO	"Rio"
+#define PHONE_NAME_RIO	    "Rio"
 #define PHONE_NAME_Y538     "Y538"
 #define PHONE_NAME_SCALE    "SCALE"
 #define PHONE_NAME_KIWI     "Kiwi"

@@ -1,4 +1,3 @@
-
 #
 # Makefile for the Synaptics DSX touchscreen driver.
 #
@@ -11,6 +10,4 @@ obj-$(CONFIG_TOUCHSCREEN_HUAWEI_DSX_RMI_DEV) += synaptics_dsx_rmi_dev.o
 obj-$(CONFIG_TOUCHSCREEN_HUAWEI_DSX_FW_UPDATE) += synaptics_dsx_fw_update.o
 obj-$(CONFIG_TOUCHSCREEN_HUAWEI_DSX_TEST_REPORTING) += synaptics_dsx_test_reporting.o
 obj-$(CONFIG_TOUCHSCREEN_HUAWEI_DSX_PROXIMITY) += synaptics_dsx_proximity.o
-
 obj-$(CONFIG_TOUCHSCREEN_HUAWEI_DSX_ESD) += synaptics_dsx_esd.o
-

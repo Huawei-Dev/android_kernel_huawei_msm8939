@@ -135,6 +135,7 @@ static struct cyttsp5_touch_config cyttsp5_ttconfig_rio_junda = {
 	.product_name = PHONE_NAME_RIO,
 };
 
+
 /* SCALE ofilm ttconfiger */
 #include "./ttconfig/SCALE_ttconfig_ofilm.h"
 static struct touch_settings cyttsp5_sett_param_regs_scale_ofilm = {

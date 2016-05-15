@@ -82,6 +82,7 @@ int fpc1020_capture_nav_wait_finger_down(fpc1020_data_t* fpc1020)
 
     error = fpc1020_nav_wait_finger_present(fpc1020);
 
+
     fpc1020_read_irq(fpc1020, true);
 
     return (error >= 0) ? 0 : error;
@@ -413,6 +414,7 @@ static void dispatch_trackpad_event(fpc1020_data_t* fpc1020, int x, int y, int f
     input_sync(fpc1020->input_dev);
 }
 
+
 /* -------------------------------------------------------------------- */
 static void dispatch_touch_event(fpc1020_data_t* fpc1020, int x, int y, int finger_status)
 {
@@ -509,6 +511,7 @@ static void dispatch_touch_event(fpc1020_data_t* fpc1020, int x, int y, int fing
             break;
     }
 }
+
 
 /* -------------------------------------------------------------------- */
 static void process_navi_event(fpc1020_data_t* fpc1020, int dx, int dy, int finger_status)
@@ -802,6 +805,7 @@ int  fpc1020_input_init(fpc1020_data_t* fpc1020)
     return error;
 }
 
+
 /* -------------------------------------------------------------------- */
 void  fpc1020_input_destroy(fpc1020_data_t* fpc1020)
 {
@@ -1049,10 +1053,15 @@ int fpc1020_input_task(fpc1020_data_t* fpc1020)
         fpc_log_err("%s error = %d\n",
             (error == -EINTR) ? "Interrupted!" : "FAILED!", error);
     }
-    atomic_set(&fpc1020->taskstate, fp_UNINIT);
+    if (fp_CAPTURE != atomic_read(&fpc1020->taskstate))
+    {
+        atomic_set(&fpc1020->taskstate, fp_UNINIT);
+        fpc_log_info("fpc1020_input_task set taskstate=%d\n",atomic_read(&fpc1020->taskstate));
+    }
     fpc1020->nav.enabled = false;
     return error;
 }
+
 
 /* -------------------------------------------------------------------- */
 static int fpc1020_write_nav_setup(fpc1020_data_t* fpc1020)
@@ -1171,6 +1180,7 @@ static int fpc1020_write_nav_setup(fpc1020_data_t* fpc1020)
 out:
     return error;
 }
+
 
 /* -------------------------------------------------------------------- */
 

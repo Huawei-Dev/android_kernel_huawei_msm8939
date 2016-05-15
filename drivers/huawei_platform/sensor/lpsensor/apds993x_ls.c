@@ -44,8 +44,9 @@
 #include <linux/hw_dev_dec.h>
 #endif
 #ifdef CONFIG_HUAWEI_DSM
-#include 	<linux/dsm_pub.h>
+#include 	<dsm/dsm_pub.h>
 #endif
+
 
 #include <misc/app_info.h>
 
@@ -93,6 +94,7 @@ static uint32_t apds993x_pwindow_value = 200;
 extern bool power_key_ps ;    //the value is true means powerkey is pressed, false means not pressed
 static int apds993x_suspend_flag = APDS993X_SUSPEND_OFF;
 static int apds993x_error_flag = APDS993X_ERROR_NOTHAPPEN;
+static bool mix_light = false;
 /*Ambient light array of values*/
 static unsigned int  lux_arr[] = {10, 20,30,50,75,200,400, 800, 1500, 3000,5000,8000,10000};
 static unsigned long  jiffies_save= 0;
@@ -116,6 +118,7 @@ module_param_named(d_ga, apds993x_d_ga, int, S_IRUGO | S_IWUSR | S_IWGRP);
 /*KERNEL_HWFLOW is for radar using to control all the log of devices*/
 #define APDS993X_INFO(x...) do {\
     if (apds993x_debug_mask >=0) \
+\
         printk(KERN_ERR x);\
     } while (0)
 #define APDS993X_DEBUG(x...) do {\
@@ -306,6 +309,8 @@ static struct dsm_dev dsm_lps_apds = {
 	.buff_size 	= DSM_SENSOR_BUF_MAX,			// buffer size
 };
 
+
+
 static int apds_dsm_report_i2c(struct apds993x_data *data);
 static int apds_dsm_report_err(int errno,struct apds993x_data *data);
 
@@ -372,7 +377,9 @@ static void apds_dsm_excep_work(struct work_struct *work)
 	*/
 	apds_dsm_report_err(DSM_LPS_THRESHOLD_ERROR,data);
 
+
 }
+
 
 static void apds_dsm_no_update_threhold_check(struct apds993x_data *data)
 {
@@ -383,6 +390,7 @@ static void apds_dsm_no_irq_check(struct apds993x_data *data)
 {
 	struct ls_test_excep *excep = &data->ls_test_exception;
 
+
 	/* add this code segment to enable ps func
 	*	irq gpio status
 	*/
@@ -391,6 +399,7 @@ static void apds_dsm_no_irq_check(struct apds993x_data *data)
 
 	schedule_delayed_work(&data->dsm_irq_work, msecs_to_jiffies(120));
 }
+
 
 static void apds_dsm_change_ps_enable_status(struct apds993x_data *data)
 {
@@ -401,6 +410,7 @@ static void apds_dsm_change_ps_enable_status(struct apds993x_data *data)
 		data->ls_test_exception.ps_report_flag = 1;
 	}
 }
+
 
 /*
 * if i2c transfer error, we check sda/scl value and regulator's value
@@ -520,17 +530,20 @@ static int apds_dsm_report_wrong_irq(struct apds993x_data *data)
 	int irq_gpio = data->platform_data->irq_gpio;
 	ssize_t size;
 
+
 	/*
 	*	read  regs and irq gpio
 	*/
 	apds_dsm_read_regs(data);
 	excep->irq_val = gpio_get_value(irq_gpio);
 
+
 	size = dsm_client_record(apds993x_lps_dclient,"irq_pin = %d\n regs:%s \n",
 		excep->irq_val, excep->reg_buf);
 
 	APDS993X_ERR("dsm error-> irq_pin = %d\n regs:%s\n",
 				excep->irq_val, excep->reg_buf);
+
 
 	return 0;
 
@@ -664,6 +677,7 @@ static int apds_dsm_report_err(int errno,struct apds993x_data *data)
 }
 
 #endif
+
 
 static int apds993x_set_command(struct i2c_client *client, int command)
 {
@@ -845,6 +859,8 @@ static int apds933x_regs_debug_print(struct apds993x_data *data,int enable)
 
 	return 0;
 }
+
+
 
 static int apds993x_set_enable(struct i2c_client *client, int enable)
 {
@@ -1062,6 +1078,12 @@ static int LuxCalculation(struct i2c_client *client, int ch0data, int ch1data)
 	}
 	/*we use 100ms adc time,so the corresponding again is 1x*/
 	luxValue /= (272*(256-APDS993X_100MS_ADC_TIME)*APDS993X_AGAIN_1X_LUXCALCULATION/100);
+	//C light  and D light will mix below 30 lux, so we are in accordance with C light all below 30 lux
+	if(mix_light && luxValue < 30)
+	{
+		luxValue = (IAC*apds993x_c_ga*APDS993X_DF)/100;
+		luxValue /= (272*(256-APDS993X_100MS_ADC_TIME)*APDS993X_AGAIN_1X_LUXCALCULATION/100);
+	}
 	APDS993X_FLOW("%s,line %d:ch0 = %d,ch1=%d,lux = %d\n",__func__,__LINE__,ch0data,ch1data,luxValue);
 	return (luxValue);
 }
@@ -1500,6 +1522,9 @@ static irqreturn_t apds993x_interrupt(int vec, void *info)
 	wake_lock_timeout(&data->ps_report_wk, PS_WAKEUP_TIME);
 	/* and ps data report function to workqueue */
 	queue_work(apds993x_workqueue, &data->dwork);
+	if(apds993x_workqueue != NULL) {
+		queue_work(apds993x_workqueue, &data->dwork);
+	}
 
 	return IRQ_HANDLED;
 }
@@ -1951,6 +1976,7 @@ static ssize_t apds993x_show_pdata(struct device *dev,
 }
 
 static DEVICE_ATTR(pdata, S_IRUGO, apds993x_show_pdata, NULL);
+
 
 /*
 * set the register's value from userspace
@@ -2700,6 +2726,14 @@ static int sensor_parse_dt(struct device *dev,
 	if (!gpio_is_valid(pdata->i2c_sda_gpio)) {
 		APDS993X_ERR("gpio i2c-sda pin %d is invalid\n", pdata->i2c_sda_gpio);
 		return -EINVAL;
+	}
+	if(of_property_read_bool(np, "avago,mix-light"))
+	{
+		mix_light = true;
+	}
+	else
+	{
+		mix_light = false;
 	}
 	return 0;
 }

@@ -155,49 +155,8 @@ static int enter_to_poweron_flag = false;
 
 #define QPNP_VM_BMS_DEV_NAME		"qcom,qpnp-vm-bms"
 #define HWLOG_TAG qpnp-vm-bms
-#ifdef CONFIG_HUAWEI_KERNEL
-#define LCD_BACKLIGHT_NODE		"/sys/class/leds/lcd-backlight/brightness"
-#define CHG_OCV_VOLTAGE_DELTA_UV		50000
-static int atoi(const char *name)
-{
-	int val = 0;
+/* delete some line */
 
-	for (;; name++) 
-	{
-		switch (*name) 
-		{
-			case '0' ... '9':
-				val = 10*val+(*name-'0');
-				break;
-			default:
-				return val;
-		}
-	}
-}
-
-int is_lcd_backlight_off(void)
-{
-	struct file *fd  = NULL;
-	mm_segment_t fs;
-
-	char char_temp[4] = {0};
-	loff_t pos = 0;
-
-	fd = filp_open(LCD_BACKLIGHT_NODE, O_RDWR, 0);
-	if (IS_ERR(fd))
-	{
-		pmu_log_err("open LCD_BACKLIGHT_NODE failed!\n ");
-		return 0;
-	}
-	fs = get_fs();
-	set_fs(KERNEL_DS);
-	vfs_read(fd, char_temp, sizeof(char_temp), &pos);
-	filp_close(fd,NULL);
-	set_fs(fs);
-	return (0 == atoi(char_temp));
-	
-}
-#endif
 /* indicates the state of BMS */
 enum {
 	IDLE_STATE,
@@ -368,6 +327,7 @@ struct qpnp_bms_chip {
 #endif
 #ifdef CONFIG_HUAWEI_KERNEL
 	struct delayed_work		report_soc_work;
+	bool					resume_soc_work;
 #endif
 };
 
@@ -1847,6 +1807,7 @@ void debug_sf_lut(struct sf_lut *p)
 	pmu_log_debug("\n");
 }
 
+
 void debug_ibat_acc(struct ibat_temp_acc_lut *p)
 {
 	int i =0,j=0;
@@ -1917,31 +1878,11 @@ static int report_voltage_based_soc(struct qpnp_bms_chip *chip)
 #define SOC_CATCHUP_SEC_PER_PERCENT	60
 #define MAX_CATCHUP_SOC	(SOC_CATCHUP_SEC_MAX / SOC_CATCHUP_SEC_PER_PERCENT)
 #define SOC_CHANGE_PER_SEC		5
+#define CHANGE_SOC_MIN_TIME		90
 #ifdef CONFIG_HUAWEI_KERNEL
 static bool factory_flag = false;
 #endif
-#ifdef CONFIG_HUAWEI_KERNEL
-static int is_ocv_falls_over_threshold(struct qpnp_bms_chip *chip)
-{
-	int old_ocv = 0;
-	int rc =0;
-	int batt_temp = 0;
-
-	old_ocv = chip->last_ocv_uv;
-	rc = get_batt_therm(chip, &batt_temp);
-	if (rc)
-		batt_temp = BMS_DEFAULT_TEMP;	
-	
-	rc = read_and_update_ocv(chip, batt_temp, false);
-	if (rc)
-	{
-		chip->last_ocv_uv = old_ocv;
-		pmu_log_err("Unable to read/upadate OCV rc=%d\n", rc);	
-	}
-
-	return (CHG_OCV_VOLTAGE_DELTA_UV <= (old_ocv - chip->last_ocv_uv));
-}
-#endif
+/* delete some line */
 
 static int report_vm_bms_soc(struct qpnp_bms_chip *chip)
 {
@@ -2041,9 +1982,19 @@ static int report_vm_bms_soc(struct qpnp_bms_chip *chip)
 #ifdef CONFIG_HUAWEI_KERNEL
 		if (soc < chip->last_soc && soc != 0 && soc != SOC_ONE)
 		{
-			if(charging && is_lcd_backlight_off())
+			if(charging)
 			{
-				if (is_ocv_falls_over_threshold(chip))
+				/*
+				* To prevent negative growth when the charger is inserted into the moment
+				* and to prevent SOC down when the battery is really charging
+				*/
+				if(charge_time_sec < CHANGE_SOC_MIN_TIME || chip->current_now < 0)
+				{
+					soc = chip->last_soc;
+					pr_info("prevent SOC down,soc = %d,charge_time = %d,current = %d\n",
+						soc,charge_time_sec,chip->current_now);
+				}
+				else
 				{
 					soc = chip->last_soc - soc_change;
 				}
@@ -2060,6 +2011,7 @@ static int report_vm_bms_soc(struct qpnp_bms_chip *chip)
 		if (soc > chip->last_soc && soc != 100)
 			soc = chip->last_soc + soc_change;
 	}
+
 	if (chip->last_soc != soc && !chip->last_soc_unbound)
 		chip->last_soc_change_sec = last_change_sec;
 
@@ -2159,11 +2111,15 @@ static int report_vm_bms_soc(struct qpnp_bms_chip *chip)
 #define HW_REPORT_SOC_LOW_THRESHOLD	5		/* 5%*/
 static int get_report_soc_time(struct qpnp_bms_chip *chip)
 {
-	if (chip->last_soc >= HW_REPORT_SOC_THRESHOLD)
+	int soc = 0;
+	
+	soc = (chip->ui_soc_tag) ? chip->ui_soc : chip->last_soc;
+
+	if (soc >= HW_REPORT_SOC_THRESHOLD)
 	{
 		return HIGH_SOC_REPORT_TIME;
 	}
-	else if (chip->last_soc >= HW_REPORT_SOC_LOW_THRESHOLD)
+	else if (soc >= HW_REPORT_SOC_LOW_THRESHOLD)
 	{
 		return MIDL_SOC_REPORT_TIME;
 	}
@@ -2182,12 +2138,21 @@ static void report_soc_work(struct work_struct *work)
 	int soc = 0;
 
 	mutex_lock(&chip->last_soc_mutex);
-	soc = report_vm_bms_soc(chip);
+	if (!chip->resume_soc_work)
+	{
+		soc = report_vm_bms_soc(chip);
+	}
+	else
+	{
+		soc = prev_soc;
+		/* after skip this work loop, make sure get bms soc in the next */
+		chip->resume_soc_work = false;
+	}
 
 	if (prev_soc != soc)
 	{
 		prev_soc = soc;
-		pmu_log_debug("the work reports the soc =%d \n", soc);
+		pmu_log_info("the work reports the soc =%d \n", soc);
 		power_supply_changed(&chip->bms_psy);
 	}
 	mutex_unlock(&chip->last_soc_mutex);
@@ -2587,6 +2552,7 @@ int hw_discharge_voltage_check(struct qpnp_bms_chip * chip, int soc, int vbat_uv
 	return soc;
 }
 
+
 /*====================================================================================
 FUNCTION: hw_protect_voltage_check
 
@@ -2611,6 +2577,7 @@ int hw_protect_voltage_check(struct qpnp_bms_chip *chip,int soc,int sample_count
 	{
 		return soc;
 	}
+
 
 	/*  check voltage only after the phone power up */
 	if(power_up_flag != true)
@@ -3048,6 +3015,9 @@ static int get_prop_bms_current_now(struct qpnp_bms_chip *chip)
 }
 
 static enum power_supply_property bms_power_props[] = {
+#ifdef CONFIG_HUAWEI_KERNEL
+	POWER_SUPPLY_PROP_CAL_CAPACITY,
+#endif
 	POWER_SUPPLY_PROP_CAPACITY,
 	POWER_SUPPLY_PROP_STATUS,
 	POWER_SUPPLY_PROP_RESISTANCE,
@@ -3092,6 +3062,11 @@ static int qpnp_vm_bms_power_get_property(struct power_supply *psy,
 	val->intval = 0;
 
 	switch (psp) {
+#ifdef CONFIG_HUAWEI_KERNEL
+	case POWER_SUPPLY_PROP_CAL_CAPACITY:
+		val->intval = get_true_bms_soc();
+		break;
+#endif
 	case POWER_SUPPLY_PROP_CAPACITY:
 		val->intval = get_prop_bms_capacity(chip);
 		break;
@@ -3335,6 +3310,7 @@ static void qpnp_vm_bms_ext_power_changed(struct power_supply *psy)
     }
 #endif
 }
+
 
 static void dump_bms_data(const char *func, struct qpnp_bms_chip *chip)
 {
@@ -4121,6 +4097,7 @@ static int bms_find_irqs(struct qpnp_bms_chip *chip,
 	return 0;
 }
 
+
 static int64_t read_battery_id(struct qpnp_bms_chip *chip)
 {
 	int rc;
@@ -4861,6 +4838,7 @@ static int qpnp_vm_bms_probe(struct spmi_device *spmi)
 		msecs_to_jiffies(chip->dt.cfg_voltage_soc_timeout_ms));
 	
 #ifdef CONFIG_HUAWEI_KERNEL
+	chip->resume_soc_work = false;
 	schedule_delayed_work(&chip->report_soc_work, 0);
 #endif
 
@@ -5060,6 +5038,7 @@ static int bms_resume(struct device *dev)
 	int rc, monitor_soc_delay = 0;
 	unsigned long tm_now_sec;
 	struct qpnp_bms_chip *chip = dev_get_drvdata(dev);
+	static unsigned long tm_prev_sec = 0;
 
 	if (chip->apply_suspend_config) {
 		if (chip->dt.cfg_force_s3_on_suspend) {
@@ -5101,7 +5080,14 @@ static int bms_resume(struct device *dev)
 	schedule_delayed_work(&chip->monitor_soc_work,
 				msecs_to_jiffies(monitor_soc_delay));
 #ifdef CONFIG_HUAWEI_KERNEL
-	schedule_delayed_work(&chip->report_soc_work, 0);
+	chip->resume_soc_work = true;
+	if (0 == tm_prev_sec || ((tm_now_sec - tm_prev_sec)*1000) >= get_report_soc_time(chip))
+	{
+		tm_prev_sec = tm_now_sec;
+		chip->resume_soc_work = false;
+	}
+	/* delay 100ms to avoid the battery virtual voltage */
+	schedule_delayed_work(&chip->report_soc_work, msecs_to_jiffies(100));
 #endif
 
 	return 0;

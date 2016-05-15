@@ -2,6 +2,7 @@
 *
 * Copyright (C), 1988-1999, Huawei Tech. Co., Ltd.
 * FileName: switch_fsa9685.c
+* Author: lixiuna(00213837)       Version : 0.1      Date:  2013-11-06
 *
 * This software is licensed under the terms of the GNU General Public
 * License version 2, as published by the Free Software Foundation, and
@@ -46,8 +47,7 @@
 #ifdef CONFIG_HUAWEI_HW_DEV_DCT
 #include <linux/hw_dev_dec.h>
 #endif
-#include <linux/usb/switch_usb.h>
-#include <linux/usb/hw_rwswitch.h>
+#include <chipset_common/hwusb/hw_usb_rwswitch.h>
 
 #ifdef CONFIG_HUAWEI_EXTERN_ID_DETECT
 #include <linux/usb/msm_hsusb.h>
@@ -281,7 +281,7 @@ static void fsa9685_intb_work(struct work_struct *work)
             }
             if (reg_dev_type3 & FSA9685_CUSTOMER_ACCESSORY7) {
                 fsa9685_manual_sw(FSA9685_USB1_ID_TO_IDBYPASS);
-                ret = usb_port_switch_request(INDEX_USB_REWORK_SN);
+                hw_usb_port_switch_request(INDEX_USB_REWORK_SN);
                 hwlog_info("%s: FSA9685_CUSTOMER_ACCESSORY7 USB_REWORK_SN ret %d\n", __func__, ret);
             }
             if (reg_dev_type3 & FSA9685_CUSTOMER_ACCESSORY5) {
@@ -711,5 +711,6 @@ static __exit void fsa9685_i2c_exit(void)
 module_init(fsa9685_i2c_init);
 module_exit(fsa9685_i2c_exit);
 
+MODULE_AUTHOR("Lixiuna<lixiuna@huawei.com>");
 MODULE_DESCRIPTION("I2C bus driver for FSA9685 USB Accesory Detection Switch");
 MODULE_LICENSE("GPL v2");

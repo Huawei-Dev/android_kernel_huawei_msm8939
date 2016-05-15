@@ -186,6 +186,7 @@ static int max77819_flash_get_charger_present(struct max77819_flash *flash)
 	return prop_val.intval;
 }
 
+
 static int max77819_flash_set_charger_enable(struct max77819_flash *flash, int on)
 {
 	int rc = 0;
@@ -442,6 +443,7 @@ static int max77819_flash_led_high(struct msm_led_flash_ctrl_t *fctrl,
 * FunctionName: msm_torch_max77819_flash_led_on;
 * Description : set torch func ;
 ***************************************************************************/
+
 
 static int max77819_torch_led_on(struct msm_led_flash_ctrl_t *fctrl,
 	struct max77819_flash *flash)
@@ -762,6 +764,7 @@ static int max77819_flash_hw_setup(struct max77819_io *io)
 	return ret;
 }
 
+
 /**********************************************************************************/
 static int32_t max77819_flash_get_subdev_id(struct msm_led_flash_ctrl_t *fctrl,
 	void *arg)
@@ -779,6 +782,7 @@ static int32_t max77819_flash_get_subdev_id(struct msm_led_flash_ctrl_t *fctrl,
 	return 0;
 
 }
+
 
 int32_t max77819_flash_config(struct msm_led_flash_ctrl_t *fctrl,
 	void *data)
@@ -839,6 +843,7 @@ int32_t max77819_flash_config(struct msm_led_flash_ctrl_t *fctrl,
 	return rc;
 }
 
+
 /**********************************************************************************/
 #ifdef CONFIG_OF
 static struct of_device_id max77819_flash_of_ids[] = {
@@ -893,6 +898,7 @@ static struct platform_driver max77819_flash_driver = {
 	},
 	.shutdown = max77819_flash_shutdown,
 };
+
 
 static int32_t max77819_flash_probe(struct platform_device *pdev)
 {
@@ -1000,6 +1006,7 @@ static struct msm_flash_fn_t max77819_flash_func_tbl = {
 static struct msm_led_flash_ctrl_t fctrl = {
 	.func_tbl = &max77819_flash_func_tbl,
 };
+
 
 module_init(max77819_flash_add_driver);
 MODULE_DESCRIPTION("Maxim77819 FLASH LED");

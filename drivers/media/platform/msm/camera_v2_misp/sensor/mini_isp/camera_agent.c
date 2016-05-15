@@ -51,6 +51,7 @@
 #define LOG_TAG "camera_agent"
 #define DEBUG_DEBUG 1
 
+
 /*
  **************************************************************************
  * FunctionName: camera_agent_stream_on;
@@ -84,4 +85,5 @@ int camera_agent_streamonoff(int32_t pos , u8 state)
 	}
 	return 0;
 }
+
 

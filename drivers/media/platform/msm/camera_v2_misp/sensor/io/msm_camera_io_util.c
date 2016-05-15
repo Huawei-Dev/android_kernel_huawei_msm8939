@@ -224,6 +224,7 @@ int msm_cam_clk_enable(struct device *dev, struct msm_cam_clk_info *clk_info,
 	}
 	return rc;
 
+
 cam_clk_enable_err:
 	clk_unprepare(clk_ptr[i]);
 cam_clk_prepare_err:

@@ -128,9 +128,12 @@ struct charge_device_info
     struct spmi_device      *spmi;
     struct power_supply		*usb_psy;
     struct power_supply		*batt_psy;
-    struct huawei_charger_irq		irqs;
-    struct wake_lock		chg_wake_lock;
-    struct wake_lock		led_wake_lock;
+    struct power_supply    *bms_psy;
+    struct huawei_charger_irq        irqs;
+    struct wake_lock        chg_wake_lock;
+    struct wake_lock        led_wake_lock;
+    char                    batt_type[MAX_SIZE];
+    const char              *batt_temp_bms;
 
     bool		usb_present;
     int			chgr_base;

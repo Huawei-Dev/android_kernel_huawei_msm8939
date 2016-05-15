@@ -897,6 +897,7 @@ static int print_cci_info(struct v4l2_subdev *sd, struct msm_camera_cci_ctrl *cc
 }
 #endif
 
+
 static int32_t msm_cci_config(struct v4l2_subdev *sd,
 	struct msm_camera_cci_ctrl *cci_ctrl)
 {

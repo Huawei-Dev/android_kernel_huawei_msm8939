@@ -72,8 +72,6 @@ obj-$(CONFIG_QPNP_MISC) += qpnp-misc.o
 obj-$(CONFIG_QCOM_LIQUID_DOCK)	+= qcom_liquid_dock.o
 obj-y				+= qcom/
 
-obj-y				+= dsm/
-
 obj-$(CONFIG_HUAWEI_KSTATE) += hw_kstate/
 
 obj-$(CONFIG_HUAWEI_RESET_DETECT) += huawei_reset_detect/

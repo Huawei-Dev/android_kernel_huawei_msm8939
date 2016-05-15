@@ -20,6 +20,8 @@
 #include "msm_vidc_common.h"
 #include "vidc_hfi_api.h"
 #include "msm_vidc_debug.h"
+#include <dsm/dsm_pub.h>
+
 #ifdef CONFIG_HUAWEI_DSM
 #include "msm_camera_vid_dsm.h"
 #endif
@@ -176,8 +178,13 @@ static int msm_comm_get_inst_load(struct msm_vidc_inst *inst,
 	}
 
 	if (is_non_realtime_session(inst) &&
-		(quirks & LOAD_CALC_IGNORE_NON_REALTIME_LOAD))
-		load = msm_comm_get_mbs_per_sec(inst) / inst->prop.fps;
+		(quirks & LOAD_CALC_IGNORE_NON_REALTIME_LOAD)) {
+		if (!inst->prop.fps) {
+			dprintk(VIDC_INFO, "%s: instance:%p prop->fps is set 0\n", __func__, inst);
+			load = 0;
+		} else
+			load = msm_comm_get_mbs_per_sec(inst) / inst->prop.fps;
+	}
 	return load;
 }
 
@@ -1138,6 +1145,7 @@ struct sys_err_handler_data {
 	struct delayed_work work;
 };
 
+
 void hw_sys_error_handler(struct work_struct *work)
 {
 	struct msm_vidc_core *core = NULL;
@@ -2066,6 +2074,7 @@ static int msm_comm_scale_clocks(struct msm_vidc_core *core)
 		msm_comm_get_load(core, MSM_VIDC_ENCODER, LOAD_CALC_NO_QUIRKS) +
 		msm_comm_get_load(core, MSM_VIDC_DECODER, LOAD_CALC_NO_QUIRKS);
 
+
 	dprintk(VIDC_INFO, "num_mbs_per_sec = %d codecs_enabled 0x%x\n",
 			num_mbs_per_sec, codecs_enabled);
 	rc = call_hfi_op(hdev, scale_clocks,
@@ -2218,6 +2227,8 @@ static void handle_thermal_event(struct msm_vidc_core *core)
 			inst->state < MSM_VIDC_CLOSE_DONE) {
 			dprintk(VIDC_WARN, "%s: abort inst %p\n",
 				__func__, inst);
+
+			change_inst_state(inst, MSM_VIDC_CORE_INVALID);
 			rc = msm_comm_session_abort(inst);
 			if (rc) {
 				dprintk(VIDC_ERR,
@@ -2225,7 +2236,6 @@ static void handle_thermal_event(struct msm_vidc_core *core)
 					__func__, rc);
 				goto err_sess_abort;
 			}
-			change_inst_state(inst, MSM_VIDC_CORE_INVALID);
 			dprintk(VIDC_WARN,
 				"%s Send sys error for inst %p\n",
 				__func__, inst);
@@ -2568,6 +2578,12 @@ static int msm_vidc_load_resources(int flipped_state,
 		inst->state = MSM_VIDC_CORE_INVALID;
 		msm_comm_kill_session(inst);
 		return -EBUSY;
+	}
+
+	if (!is_thermal_permissible(core)) {
+		dprintk(VIDC_WARN,
+			"Thermal level critical, stop the session!\n");
+		return -ENOTSUPP;
 	}
 
 	hdev = core->device;
@@ -3543,7 +3559,6 @@ int msm_comm_try_get_prop(struct msm_vidc_inst *inst, enum hal_property ptype,
 		return -EAGAIN;
 	}
 	hdev = inst->core->device;
-	mutex_lock(&inst->sync_lock);
 	if (inst->state < MSM_VIDC_OPEN_DONE || inst->state >= MSM_VIDC_CLOSE) {
 		dprintk(VIDC_ERR,
 			"%s Not in proper state\n", __func__);
@@ -3606,7 +3621,6 @@ int msm_comm_try_get_prop(struct msm_vidc_inst *inst, enum hal_property ptype,
 	}
 	mutex_unlock(&inst->pending_getpropq.lock);
 exit:
-	mutex_unlock(&inst->sync_lock);
 	return rc;
 }
 
@@ -3883,7 +3897,6 @@ int msm_comm_try_set_prop(struct msm_vidc_inst *inst,
 	}
 	hdev = inst->core->device;
 
-	mutex_lock(&inst->sync_lock);
 	if (inst->state < MSM_VIDC_OPEN_DONE || inst->state >= MSM_VIDC_CLOSE) {
 		dprintk(VIDC_ERR, "Not in proper state to set property\n");
 		rc = -EAGAIN;
@@ -3894,7 +3907,6 @@ int msm_comm_try_set_prop(struct msm_vidc_inst *inst,
 	if (rc)
 		dprintk(VIDC_ERR, "Failed to set hal property for framesize\n");
 exit:
-	mutex_unlock(&inst->sync_lock);
 	return rc;
 }
 
@@ -4205,6 +4217,7 @@ int msm_comm_flush(struct msm_vidc_inst *inst, u32 flags)
 
 	return rc;
 }
+
 
 enum hal_extradata_id msm_comm_get_hal_extradata_index(
 	enum v4l2_mpeg_vidc_extradata index)
@@ -4548,12 +4561,6 @@ int msm_vidc_check_session_supported(struct msm_vidc_inst *inst)
 		dprintk(VIDC_WARN,
 			"%s: Hardware is overloaded\n", __func__);
 		return rc;
-	}
-
-	if (!is_thermal_permissible(core)) {
-		dprintk(VIDC_WARN,
-			"Thermal level critical, stop all active sessions!\n");
-		return -ENOTSUPP;
 	}
 
 	if (!rc && inst->capability.capability_set) {

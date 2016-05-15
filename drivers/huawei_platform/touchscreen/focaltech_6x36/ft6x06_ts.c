@@ -87,9 +87,11 @@ static unsigned int reversal_data = 0;
 #define FTS_POINT_DOWN		0x00
 #define FTS_POINT_CONTACT	0x02
 
+
 struct ft6x06_ts_data * g_ft6x06_ts = NULL;
 extern struct dsm_dev dsm_i2c;
 extern struct dsm_client *tp_dclient;
+
 
 /*
 *ft6x06_tp_dump - called when force dump dsm err
@@ -115,6 +117,7 @@ int ft6x06_tp_dump (int type, void *buff, int size)
 
     return dsm_client->used_size;
 }
+
 
 size_t ft6x06_dsm_record_basic_info(struct ft6x06_ts_data * ft6x06_data, struct dsm_client * dsm_client)
 {
@@ -188,6 +191,7 @@ void ft6x06_report_dsm_erro(struct ft6x06_ts_data * ft6x06_data, struct dsm_clie
 
     return;
 }
+
 
 /*
 *ft6x06_i2c_Read-read data and write data by i2c
@@ -806,6 +810,7 @@ static int ft6x06_parse_dt(struct device *dev,struct ft6x06_platform_data *pdata
 	tp_log_info("Info:%s,line=%d,reset=%d, irq=%d, reset_flag = %d, irq_flag = %d.\n", 
 		__func__, __LINE__,pdata->reset, pdata->irq, pdata->reset_flags, pdata->irq_flags);
 
+
 	rc = of_property_read_u32(dev->of_node,"ft6x06,tp_x_max", &pdata->x_max);
 	if (rc) {
 		tp_log_info("Info:%s,line=%d,rc=%d\n", __func__, __LINE__,rc);
@@ -833,6 +838,8 @@ static int ft6x06_parse_dt(struct device *dev,struct ft6x06_platform_data *pdata
 error_alloc_data_failed:
 	return rc;
 }
+
+
 
 struct kobject *ft6x06_virtual_key_properties_kobj = NULL;
 
@@ -1411,6 +1418,7 @@ static const struct i2c_device_id ft6x06_ts_id[] = {
 };
 
 MODULE_DEVICE_TABLE(i2c, ft6x06_ts_id);
+
 
 static struct i2c_driver ft6x06_ts_driver = {
 	.probe = ft6x06_ts_probe,

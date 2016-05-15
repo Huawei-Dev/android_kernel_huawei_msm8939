@@ -679,6 +679,7 @@ ERROR1:
 	return rc;
 }
 
+
 static int msm_eeprom_cmm_dts(struct msm_eeprom_board_info *eb_info,
 				struct device_node *of_node)
 {
@@ -1089,6 +1090,7 @@ static int msm_eeprom_platform_probe(struct platform_device *pdev)
 	power_info->clk_info = cam_8974_clk_info;
 	power_info->clk_info_size = ARRAY_SIZE(cam_8974_clk_info);
 	power_info->dev = &pdev->dev;
+
 
 	rc = of_property_read_u32(of_node, "qcom,i2c-freq-mode",
 		&eb_info->i2c_freq_mode);

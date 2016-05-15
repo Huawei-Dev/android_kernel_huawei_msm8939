@@ -58,6 +58,7 @@ static int msm_sensor_platform_remove(struct platform_device *pdev)
 	return 0;
 }
 
+
 static const struct of_device_id msm_sensor_driver_dt_match[] = {
 	{.compatible = "qcom,camera"},
 	{}
@@ -350,6 +351,7 @@ static int32_t msm_sensor_fill_slave_info_init_params(
 	return 0;
 }
 
+
 static int32_t msm_sensor_validate_slave_info(
 	struct msm_sensor_info_t *sensor_info)
 {
@@ -564,6 +566,7 @@ static int32_t msm_sensor_get_power_up_settings(void *setting,
 			pu[i].seq_type, pu[i].seq_val,
 			pu[i].config_val, pu[i].delay);
 	}
+
 
 	/* Fill power up setting and power up setting size */
 	power_info->power_setting = pu;
@@ -787,6 +790,7 @@ int32_t msm_sensor_driver_probe(void *setting,
 		pr_err("failed");
 		goto free_slave_info;
 	}
+
 
 	camera_info = kzalloc(sizeof(struct msm_camera_slave_info), GFP_KERNEL);
 	if (!camera_info) {
@@ -1264,6 +1268,7 @@ static int32_t msm_sensor_driver_parse(struct msm_sensor_ctrl_t *s_ctrl)
 	CDBG("Enter");
 	/* Validate input parameters */
 
+
 	/* Allocate memory for sensor_i2c_client */
 	s_ctrl->sensor_i2c_client = kzalloc(sizeof(*s_ctrl->sensor_i2c_client),
 		GFP_KERNEL);
@@ -1531,6 +1536,7 @@ static int __init msm_sensor_driver_init(void)
 
 	return rc;
 }
+
 
 static void __exit msm_sensor_driver_exit(void)
 {

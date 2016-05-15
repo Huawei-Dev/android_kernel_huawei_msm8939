@@ -17,6 +17,7 @@
  *      V1.0:2012/10/20
  */
 
+
 #ifndef _GT9XX_OPEN_SHORT_H_
 #define _GT9XX_OPEN_SHORT_H_
 
@@ -373,6 +374,7 @@ const u8 ChannelPackage_TX[MAX_DRIVER_NUM] =  {
 #define GT9_DRV_HEAD    0x80
 #define GT9_SEN_HEAD    0x00
 
+
 // register defines for burning of dsp_short
 #define _bRW_MISCTL__SRAM_BANK          0x4048 
 #define _bRW_MISCTL__MEM_CD_EN          0x4049
@@ -386,6 +388,7 @@ const u8 ChannelPackage_TX[MAX_DRIVER_NUM] =  {
 #define _rRW_MISCTL__BOOT_CTL_          0x5094  
 #define _rRW_MISCTL__SHORT_BOOT_FLAG    0x5095
 
+
 #define GTP_REG_DSP_SHORT               0xc000
 
 #define GT9_REG_SEN_DRV_CNT             0x8062
@@ -394,6 +397,7 @@ const u8 ChannelPackage_TX[MAX_DRIVER_NUM] =  {
 
 #define GT9_REG_SEN_ORD     0x80B7
 #define GT9_REG_DRV_ORD     0x80D5
+
 
 struct gt9xx_short_info
 {
@@ -439,5 +443,6 @@ struct gt9xx_open_info
     u8 times; 	// test fail times
     u8 key;		// 0: nonekey, others: key_no(1-4)
 };
+
 
 #endif 

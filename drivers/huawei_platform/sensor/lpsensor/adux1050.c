@@ -483,6 +483,7 @@ inline void update_calib_settings(struct adux1050_chip *adux1050, u16 total_stg,
 	u16 hys_reg = 0;
 	s16 ret;
 
+
 	/* Disable the interrupt	*/
 	ret = adux1050->read(adux1050->dev, INT_CTRL_REG, &int_ctrl_reg, DEF_WR);
 	if (ret < DEF_WR) {
@@ -1430,6 +1431,7 @@ static int adux1050_open_calibration(struct adux1050_chip *adux1050,
 		return err;
 	}
 
+
 	err = offset_filp->f_op->read(offset_filp, (char *)&st_file,
 		(sizeof(u16) * TOTAL_STG * FILP_PARAM_CNT + sizeof(u16)),
 		&offset_filp->f_pos);
@@ -1447,6 +1449,7 @@ static int adux1050_open_calibration(struct adux1050_chip *adux1050,
 	update_calib_settings(adux1050, tot_stg_cnt,
 			      &st_file[1], write_to_reg, ADUX1050_ENABLE);
 
+
 flip_exit:
 	/*filp_close(offset_filp, current->files);*/
 	filp_close(offset_filp, NULL);
@@ -1454,6 +1457,7 @@ flip_exit:
 
 	return err;
 }
+
 
 /**
 * \fn int save_calib_val_filp(struct adux1050_chip *adux1050)
@@ -1525,6 +1529,7 @@ static int save_calib_val_filp(struct adux1050_chip *adux1050)
 	/*filp_close(offset_filp, current->files);*/
 	offset_filp->f_pos = 0;
 	filp_close(offset_filp, NULL);
+
 
 err_file_open:
 	set_fs(old_fs);
@@ -3097,6 +3102,7 @@ static struct device_attribute dev_attr_sensor_poll =
 	       show_poll_delay, store_poll_delay);
 #endif
 
+
 static struct attribute *adux1050_attrs[] = {
 	&dev_attr_adux1050_enable.attr,
 	&dev_attr_sensor_name.attr,
@@ -3830,6 +3836,7 @@ static int adux1050_i2c_suspend(struct device *dev)
 
 	ADUX1050_INFO("%s,check (%d)\n", __func__, adux1050->dev_enable);
 //delete lines
+
 
 	return 0;
 }

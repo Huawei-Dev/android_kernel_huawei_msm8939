@@ -1,6 +1,7 @@
 /************************************************************
   Copyright (C), 2014-2015, Huawei Tech. Co., Ltd.
 FileName: sensor_otp_imx219.c
+Author:  jwx206032
 Version :Initial Draft
 Date: 2015/02/27
 Description:    this file contion several functions to detect otp_imx219 properties
@@ -8,6 +9,7 @@ Version:         Initial Draft
 History:
 History        :
 1.Date        : 2015/02/27
+Author        : jwx206032
 Modification : Created function
  ***********************************************************/
 
@@ -54,7 +56,7 @@ static  uint32_t bg_ratio_typical = 0x257;   //the average of 4 Golden samples' 
 
 //the value used for vcm effect, maybe modified by others
 #define IMX219_LITEON_OTP_VCM_OFFSET_VALUE      80
-#define IMX219_OFILM_OTP_VCM_OFFSET_VALUE       120
+#define IMX219_OFILM_OTP_VCM_OFFSET_VALUE       (200)
 #define IMX219_OTP_VCM_END_MAX                  1023
 typedef enum {
 	SUNNY_MODULE_VENDOR_ID = 1,

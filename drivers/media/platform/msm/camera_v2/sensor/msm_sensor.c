@@ -295,10 +295,12 @@ static int32_t msm_sensor_get_dt_data(struct device_node *of_node,
 			sensordata->power_info.num_vreg,
 			&sensordata->power_info);
 
+
 	if (rc < 0) {
 		pr_err("%s failed %d\n", __func__, __LINE__);
 		goto FREE_VREG;
 	}
+
 
 	rc = msm_camera_get_power_settimgs_from_sensor_lib(
 			&sensordata->power_info,
@@ -867,6 +869,7 @@ struct hw_sensor_fct sensor_fct_list[] ={
     {"ov5648_ofilm_ohw5f03_kiw",0x4869,MSM_CAMERA_I2C_BYTE_DATA},
     {"ov13850_ofilm_ohw8a04",0x4851,MSM_CAMERA_I2C_BYTE_DATA},
     {"ov13850_liteon_193",0x4851,MSM_CAMERA_I2C_BYTE_DATA},
+    {"s5k3m2_sunny_kiw",0x0005,MSM_CAMERA_I2C_BYTE_DATA}
 };
 
 static int hw_sensor_read_framecount(struct msm_sensor_ctrl_t *s_ctrl)
@@ -1157,12 +1160,9 @@ static int msm_sensor_config32(struct msm_sensor_ctrl_t *s_ctrl,
 		rc = s_ctrl->sensor_i2c_client->i2c_func_tbl->
 			i2c_write_table(s_ctrl->sensor_i2c_client,
 			&conf_array);
-
-		//i2c write err
-		if ( rc < 0 )
-		{
-			camera_report_dsm_err_msm_sensor(s_ctrl, DSM_CAMERA_I2C_ERR, rc, "CFG_WRITE_I2C_ARRAY" );
-		}
+#ifdef CONFIG_HUAWEI_DSM
+			//move DSM_CAMERA_I2C_ERR to msm_cci
+#endif
 
 		kfree(reg_setting);
 		break;
@@ -1227,11 +1227,9 @@ static int msm_sensor_config32(struct msm_sensor_ctrl_t *s_ctrl,
                          conf_array.data_type);
                 }
             }
-		//i2c write err
-		if ( rc < 0 )
-		{
-			camera_report_dsm_err_msm_sensor(s_ctrl, DSM_CAMERA_I2C_ERR, rc, "CFG_WRITE_EXPOSURE_DATA");
-		}
+#ifdef CONFIG_HUAWEI_DSM
+			//move DSM_CAMERA_I2C_ERR to msm_cci
+#endif
             if (conf_array.delay > 20)
                 msleep(conf_array.delay);
             else if (conf_array.delay)
@@ -1384,6 +1382,14 @@ static int msm_sensor_config32(struct msm_sensor_ctrl_t *s_ctrl,
 			pr_info("%s: cancel frm_cnt_work read_times = %d\n",__func__,read_times);
 			read_times = 0;
 			cancel_delayed_work_sync(&s_ctrl->frm_cnt_work);
+#ifdef CONFIG_HUAWEI_DSM
+			csi_pkg_count = 0;
+			sensor_frame_dsm_cnt.count = 0;
+			for (i = 0; i < HW_PRINT_PACKET_NUM_TIME; i++)
+			{
+			 sensor_frame_dsm_cnt.sensor_frame_read[i] = 0;
+			}
+#endif
 		}
 		if (s_ctrl->func_tbl->sensor_power_down) {
 			if (s_ctrl->sensordata->misc_regulator)
@@ -1401,11 +1407,22 @@ static int msm_sensor_config32(struct msm_sensor_ctrl_t *s_ctrl,
 		} else {
 			rc = -EFAULT;
 		}
+#ifdef CONFIG_HUAWEI_DSM
+			camera_is_closing = 0;
+#endif
 		break;
 	/* optimize camera print mipi packet and frame count log*/
    case CFG_START_FRM_CNT:
        {
            read_times = 0;
+#ifdef CONFIG_HUAWEI_DSM
+			csi_pkg_count = 0;
+			sensor_frame_dsm_cnt.count = 0;
+			for (i = 0; i < HW_PRINT_PACKET_NUM_TIME; i++)
+			{
+			 sensor_frame_dsm_cnt.sensor_frame_read[i] = 0;
+			}
+#endif
            cancel_delayed_work_sync(&s_ctrl->frm_cnt_work);
        
            read_times = HW_PRINT_PACKET_NUM_TIME;
@@ -1417,6 +1434,14 @@ static int msm_sensor_config32(struct msm_sensor_ctrl_t *s_ctrl,
     case CFG_STOP_FRM_CNT:
         {
             read_times = 0;
+#ifdef CONFIG_HUAWEI_DSM
+			csi_pkg_count = 0;
+			sensor_frame_dsm_cnt.count = 0;
+			for (i = 0; i < HW_PRINT_PACKET_NUM_TIME; i++)
+			{
+			 sensor_frame_dsm_cnt.sensor_frame_read[i] = 0;
+			}
+#endif
             cancel_delayed_work_sync(&s_ctrl->frm_cnt_work);
             pr_info("%s:%s stop read frame count work \n",__func__,s_ctrl->sensordata->sensor_name);
         }
@@ -1483,7 +1508,9 @@ static int msm_sensor_config32(struct msm_sensor_ctrl_t *s_ctrl,
 			rc = otp_function_lists[index].sensor_otp_function(s_ctrl, index);
 			if (rc < 0)
 			{
-				camera_report_dsm_err_msm_sensor(s_ctrl, DSM_CAMERA_OTP_ERR, rc, NULL);
+#ifdef CONFIG_HUAWEI_DSM
+			camera_report_dsm_err_msm_sensor(s_ctrl, DSM_CAMERA_OTP_ERR, rc, NULL);
+#endif
 				pr_err("%s:%d failed rc %d\n", __func__,
 					__LINE__, rc);
 			}
@@ -1510,6 +1537,7 @@ static int msm_sensor_config32(struct msm_sensor_ctrl_t *s_ctrl,
 	case CFG_SET_AWB_OTP_INFO:
 		rc = msm_sensor_get_awb_otp_info(s_ctrl, argp);
 		break;
+
 
 	default:
 		rc = -EFAULT;

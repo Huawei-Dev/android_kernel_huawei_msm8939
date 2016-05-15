@@ -1,4 +1,3 @@
-
 config FINGERPRINT
 	tristate "fingerprint"
 	default n

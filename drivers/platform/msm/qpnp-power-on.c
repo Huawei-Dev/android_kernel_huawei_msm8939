@@ -29,7 +29,7 @@
 #include <soc/qcom/smsm.h>
 #endif
 #ifdef CONFIG_HUAWEI_KERNEL
-#include <linux/dsm_pub.h>
+#include <dsm/dsm_pub.h>
 #include <linux/hw_lcd_common.h>
 #endif
 
@@ -43,6 +43,7 @@
 #define PON_INT_RT_STS_KPDPWR_ON  0x0
 #define PON_INT_RT_STS_KPDPWR_BARK  0x3
 #endif
+
 
 #define CREATE_MASK(NUM_BITS, POS) \
 	((unsigned char) (((1 << (NUM_BITS)) - 1) << (POS)))
@@ -231,6 +232,7 @@ struct qpnp_pon {
 
 static struct qpnp_pon *sys_reset_dev;
 bool power_key_ps = false;
+bool uvlo_event_trigger = false;
 
 #ifdef CONFIG_HUAWEI_KERNEL
 static int g_cblpwr_state_irq;
@@ -512,6 +514,8 @@ int qpnp_pon_system_pwr_off(enum pon_power_off_type type)
 }
 EXPORT_SYMBOL(qpnp_pon_system_pwr_off);
 
+
+
 /**
  * qpnp_pon_is_warm_reset - Checks if the PMIC went through a warm reset.
  *
@@ -556,6 +560,7 @@ int qpnp_pon_wd_config(bool enable)
 	return rc;
 }
 EXPORT_SYMBOL(qpnp_pon_wd_config);
+
 
 /**
  * qpnp_pon_trigger_config - Configures (enable/disable) the PON trigger source
@@ -715,9 +720,9 @@ qpnp_pon_input_dispatch(struct qpnp_pon *pon, u32 pon_type)
 	//remove to  following row
 #ifdef CONFIG_HUAWEI_DSM
 	if(cfg->key_code == DSM_POWER_KEY_VAL && key_status){
-		dsm_key_pressed(DSM_POW_KEY);
+		//dsm_key_pressed(DSM_POW_KEY);
 	}else if(cfg->key_code == DSM_VOL_DOWN_KEY_VAL && key_status){
-		dsm_key_pressed(DSM_VOL_DOWN_KEY);
+		//dsm_key_pressed(DSM_VOL_DOWN_KEY);
 	}
 #endif
 
@@ -798,6 +803,7 @@ static irqreturn_t qpnp_kpdpwr_bark_irq(int irq, void *_pon)
 
 	pr_err("PMIC input: sts=0x%hhx, when expect 0x%hhx.\n",  pon_rt_sts, pon_rt_sts_kpdpwr_bark);
 #endif
+
 
 #ifdef CONFIG_HUAWEI_KERNEL
 	if(pon_rt_sts_kpdpwr_bark == (pon_rt_sts & pon_rt_sts_kpdpwr_bark))
@@ -1843,6 +1849,7 @@ static void monitor_power_on_off_reason(struct qpnp_pon *pon)
 			dev_info(&pon->spmi->dev,
 				"PMIC@SID%d Power-off reason: %s, reg:0x%x\n",
 				pon->spmi->sid, qpnp_poff_reason[index], poff_sts);
+            uvlo_event_trigger = true;
 			/* if power on reason is UVLO, record this log, and notify to the dsm server*/
 			DSM_PMU_LOG(pmu_dclient, DSM_ABNORMAL_POWEROFF_REASON_2,
 				"PMIC@SID%d Power-off reason: %s, reg:0x%x\n",

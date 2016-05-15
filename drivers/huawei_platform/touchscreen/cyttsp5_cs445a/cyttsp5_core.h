@@ -151,6 +151,7 @@ enum cyttsp5_gesture_num {
 #define REPORT_GESTURE_LOCUS 1
 #define GESTURE_TIMER_INTERVAL  HZ //jiffies 1S
 
+
 #define CYTTSP5_SIZE_OF_LETTER_DATA 30
 #define CYTTSP5_SIZE_OF_CLICK_DATA 14
 #define CYTTSP5_LETTER_LOCUS_NUM 6
@@ -171,6 +172,7 @@ struct cyttsp5_core_platform_data {
 	u16 vendor_id;
 	u16 product_id;
 	const char *product_name;
+	const char *chip_name;
 
 	struct cyttsp5_power_config * power_config;
 
@@ -199,6 +201,8 @@ struct cyttsp5_core_platform_data {
 	unsigned int glove_support;
 	unsigned int holster_support;
 	int fw_update_logic;
+	int input_register_early;
+	unsigned int mmi_test_support;
 };
 
 struct touch_framework {
@@ -223,6 +227,10 @@ struct cyttsp5_mt_platform_data {
 	char const *inp_dev_name;
 	int vkeys_x;
 	int vkeys_y;
+	int x_max;
+	int y_max;
+	int p_max;
+	int slots_max;
 };
 
 struct cyttsp5_btn_platform_data {
@@ -246,5 +254,8 @@ static inline struct cyttsp5_platform_data *cyttsp5_get_platform_data(struct dev
 {
 	return (struct cyttsp5_platform_data *)dev->platform_data;
 }
+
+int cyttsp5_command_response(struct device *dev,u8 *buf);
+int cyttsp5_send_command(struct device *dev,char *buf);
 
 #endif /* _LINUX_CYTTSP5_CORE_H */

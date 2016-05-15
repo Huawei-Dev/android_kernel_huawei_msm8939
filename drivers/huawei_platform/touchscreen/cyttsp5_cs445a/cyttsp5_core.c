@@ -30,8 +30,9 @@
 #include <linux/hw_dev_dec.h>
 #endif
 #ifdef CONFIG_HUAWEI_DSM
-#include <linux/dsm_pub.h>
+#include <dsm/dsm_pub.h>
 #endif/*CONFIG_HUAWEI_DSM*/
+
 
 #define CY_CORE_STARTUP_RETRY_COUNT		3
 u8 tp_color_data = 0;
@@ -48,7 +49,7 @@ extern struct dsm_client *tp_cyp_dclient;
 extern ssize_t cyttsp5_dsm_record_basic_err_info(struct device *dev);
 extern int cyttsp5_tp_report_dsm_err(struct device *dev, int type, int err_numb);
 #endif/*CONFIG_HUAWEI_DSM*/
-
+struct device *gdev = NULL;
 struct device *cyttsp5_core_dev = NULL;
 struct cyttsp5_hid_field {
 	int report_count;
@@ -2072,6 +2073,7 @@ again:
 	return rc;
 }
 
+
 static int cyttsp5_hid_output_get_selftest_result(
 		struct cyttsp5_core_data *cd, u16 read_offset, u16 read_length,
 		u8 test_id, u8 *status, u16 *actual_read_len, u8 *data)
@@ -2093,6 +2095,7 @@ static int cyttsp5_hid_output_get_selftest_result(
 
 	return rc;
 }
+
 
 static int _cyttsp5_request_hid_output_get_selftest_result(struct device *dev,
 		int protect, u16 read_offset, u16 read_length, u8 test_id,
@@ -2742,6 +2745,7 @@ static int cyttsp5_hid_output_bl_get_panel_id_(
 	return 0;
 }
 
+/*
 static int cyttsp5_hid_output_bl_get_panel_id(
 		struct cyttsp5_core_data *cd, u8 *panel_id)
 {
@@ -2761,7 +2765,50 @@ static int cyttsp5_hid_output_bl_get_panel_id(
 
 	return rc;
 }
+*/
+static int cyttsp5_get_panel_id(struct cyttsp5_core_data *cd, u8 *panel_id)
+{
+    *panel_id = cd->response_buf[47];
+    return 0;
+}
 
+
+static int cyttsp5_hid_output_get_panel_id_(struct cyttsp5_core_data *cd, u8 *panel_id)
+{
+    int rc;
+    struct cyttsp5_hid_output hid_output = {
+        HID_OUTPUT_APP_COMMAND(HID_OUTPUT_GET_SYSINFO),
+        .timeout_ms = CY_HID_OUTPUT_GET_SYSINFO_TIMEOUT,
+    };
+
+    rc = cyttsp5_hid_send_output_and_wait_(cd, &hid_output);
+    if (rc)
+        return rc;
+
+    return cyttsp5_get_panel_id(cd, panel_id);
+}
+
+
+static int cyttsp5_hid_output_get_panel_id(struct device *dev, int protect, u8 *panel_id)
+{
+    int rc;
+    struct cyttsp5_core_data *cd = dev_get_drvdata(dev);
+
+    rc = request_exclusive(cd, cd->dev, CY_REQUEST_EXCLUSIVE_TIMEOUT);
+    if (rc < 0) {
+        dev_err(cd->dev, "%s: fail get exclusive ex=%p own=%p\n",
+            __func__, cd->exclusive_dev, cd->dev);
+        return rc;
+    }
+
+    rc = cyttsp5_hid_output_get_panel_id_(cd, panel_id);
+
+    if (release_exclusive(cd, cd->dev) < 0)
+        dev_err(cd->dev, "%s: fail to release exclusive\n", __func__);
+
+    return rc;
+}
+/*
 static int _cyttsp5_request_hid_output_bl_get_panel_id(
 		struct device *dev, int protect, u8 *panel_id)
 {
@@ -2772,6 +2819,7 @@ static int _cyttsp5_request_hid_output_bl_get_panel_id(
 
 	return cyttsp5_hid_output_bl_get_panel_id_(cd, panel_id);
 }
+*/
 
 static int cyttsp5_get_hid_descriptor_(struct cyttsp5_core_data *cd,
 		struct cyttsp5_hid_desc *desc)
@@ -3507,7 +3555,7 @@ static void call_atten_cb(struct cyttsp5_core_data *cd,
 	spin_unlock(&cd->spinlock);
 }
 
-static void cyttsp5_start_wd_timer(struct cyttsp5_core_data *cd)
+void cyttsp5_start_wd_timer(struct cyttsp5_core_data *cd)
 {
 	if (!CY_WATCHDOG_TIMEOUT) {
 		tp_log_info("%s:watch dog timeout:%d\n", __func__, CY_WATCHDOG_TIMEOUT);
@@ -3518,7 +3566,7 @@ static void cyttsp5_start_wd_timer(struct cyttsp5_core_data *cd)
 			msecs_to_jiffies(CY_WATCHDOG_TIMEOUT));
 }
 
-static void cyttsp5_stop_wd_timer(struct cyttsp5_core_data *cd)
+void cyttsp5_stop_wd_timer(struct cyttsp5_core_data *cd)
 {
 	if (!CY_WATCHDOG_TIMEOUT) {
 		tp_log_info("%s:watch dog timeout:%d\n", __func__, CY_WATCHDOG_TIMEOUT);
@@ -3566,17 +3614,15 @@ static void cyttsp5_watchdog_work(struct work_struct *work)
 			__func__, rc);
 
 		/* Already tried FW upgrade because of watchdog but failed */
-		if (cd->startup_retry_count > CY_WATCHDOG_RETRY_COUNT)
-			return;
+		/* if dog fail times > CY_WATCHDOG_RETRY_COUNT, still call start_up */
+		tp_log_info("%s:current startup_retry_count:%d\n", __func__, cd->startup_retry_count);
 
-		if (cd->startup_retry_count++ < CY_WATCHDOG_RETRY_COUNT)
-			cyttsp5_queue_startup(cd);
-		else
+		if (cd->startup_retry_count++ == CY_WATCHDOG_RETRY_COUNT)
 			kthread_run(start_fw_upgrade, cd, "cyttp5_loader");
-
+		else
+			cyttsp5_queue_startup(cd);
 		return;
 	}
-
 start_wd_timer:
 	cyttsp5_start_wd_timer(cd);
 }
@@ -3744,6 +3790,7 @@ static int cyttsp5_wakeup_host(struct cyttsp5_core_data *cd)
 		cd->gest_pos[i].x = -1;
 		cd->gest_pos[i].y = -1;
 	}
+
 
 	for(i=0; i<(size-6)/4; i++) {
 		cd->gest_pos[i].x = get_unaligned_le16(&cd->input_buf[6+i*4]);
@@ -3990,6 +4037,7 @@ static int cyttsp5_read_input(struct cyttsp5_core_data *cd)
 {
 	/* delete for fix easy wakeup function do not work */
 	int rc = 0;
+	unsigned int size = 0;
 
 	rc = cyttsp5_adap_read_default_nosize(cd, cd->input_buf, CY_MAX_INPUT);
 	if (rc) {
@@ -3997,6 +4045,16 @@ static int cyttsp5_read_input(struct cyttsp5_core_data *cd)
 				__func__, rc);
 		return rc;
 	}
+
+	size = get_unaligned_le16(&cd->input_buf[0]);
+	if( size > CY_MAX_INPUT ) {
+		tp_log_err("%s line%d: max input size exceeded!size=%d\n",__func__,__LINE__,size);
+		size = CY_MAX_INPUT;
+		cd->input_buf[0] = (char)size;
+		cd->input_buf[1] = (char)(size>>8);
+		tp_log_info("%s line%d: manual set size to CY_MAX_INPUT: %d\n",__func__,__LINE__,size);
+	}
+
 	tp_log_vdebug( "%s: Read input successfully\n", __func__);
 	return rc;
 }
@@ -4450,7 +4508,11 @@ static int cyttsp5_get_ic_crc_(struct cyttsp5_core_data *cd, u8 ebid)
 
 	if (status) {
 		rc = -EINVAL;
+		cd->config_crc_fail_flag = true;
+		tp_log_err("%s: crc fail ,status=%d\n",__func__,status);
 		goto exit;
+	} else {
+		cd->config_crc_fail_flag = false;
 	}
 
 	si->ttconfig.crc = stored_crc;
@@ -5598,7 +5660,8 @@ static struct cyttsp5_core_nonhid_cmd _cyttsp5_core_nonhid_cmd = {
 	.prog_and_verify = _cyttsp5_request_hid_output_bl_program_and_verify,
 	.verify_app_integrity =
 		_cyttsp5_request_hid_output_bl_verify_app_integrity,
-	.get_panel_id = _cyttsp5_request_hid_output_bl_get_panel_id,
+     //.get_panel_id = _cyttsp5_request_hid_output_bl_get_panel_id,
+    .get_panel_id = cyttsp5_hid_output_get_panel_id,
 };
 
 static struct cyttsp5_core_commands _cyttsp5_core_commands = {
@@ -6571,6 +6634,8 @@ int cyttsp5_probe(const struct cyttsp5_bus_ops *ops, struct device *dev,
 
 	cd->glove_support = cd->cpdata->glove_support;
 	cd->holster_support = cd->cpdata->holster_support;
+	cd->mmi_test_support = cd->cpdata->mmi_test_support;
+	tp_log_info("%s mmi_test_support = %d\n", __func__, cd->mmi_test_support);
 	/* Set Panel ID to Not Enabled */
 	cd->panel_id = PANEL_ID_NOT_ENABLED;
 	
@@ -6710,6 +6775,12 @@ int cyttsp5_probe(const struct cyttsp5_bus_ops *ops, struct device *dev,
 			tp_log_err( "%s: Error, holster init sysfs fail! \n", __func__);
 		}
 	}
+
+	if (cd->mmi_test_support) {
+		cyttsp5_procfs_create();
+	}
+
+	gdev = dev;
 	tp_log_warning("%s %d:cyttsp5_core_probe success.\n", __func__, __LINE__);
 	return 0;
 

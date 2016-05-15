@@ -23,7 +23,7 @@
 #include	<linux/i2c.h>
 #include	<linux/input.h>
 #ifdef CONFIG_HUAWEI_DSM 
-#include 	<linux/dsm_pub.h>
+#include 	<dsm/dsm_pub.h>
 #endif
 #include	<linux/sensors.h>
 
@@ -327,7 +327,7 @@ struct kionix_accel_platform_data {
 #define GS_MAP_DIRECTION_BOTTOM 1
 #define GS_MAP_DIRECTION_TOP		0
 #define GS_MAP_DIRECTION_BOTTOM_LEFT_TOP 2
-
+#define GS_MAP_DIRECTION_NOREVERSAL 3
 #define DEFAULT_INT1_GPIO 			1017
 #define DEFAULT_DIRECT			GS_MAP_DIRECTION_TOP
 #define DEFAULT_G_RANGE			0

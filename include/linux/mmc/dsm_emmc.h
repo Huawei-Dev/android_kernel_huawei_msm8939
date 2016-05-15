@@ -2,7 +2,7 @@
 #ifndef LINUX_MMC_DSM_EMMC_H
 #define LINUX_MMC_DSM_EMMC_H
 
-#include <linux/dsm_pub.h>
+#include <dsm/dsm_pub.h>
 
 /* define a 4096 size of array as buffer */
 #define EMMC_DSM_BUFFER_SIZE  4096

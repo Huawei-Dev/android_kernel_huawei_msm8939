@@ -150,4 +150,3 @@ static void printf_putc(unsigned n, void *cookie)
     }
 }
 #endif
-

@@ -948,6 +948,7 @@ static irqreturn_t ap3426_irq_handler(int irq, void *data)
 	if (rc && (atomic_inc_return(&di->wake_count) == 1))
 		pm_stay_awake(&di->i2c->dev);
 
+
 	return IRQ_HANDLED;
 }
 
@@ -1212,6 +1213,7 @@ exit:
 	return;
 }
 
+
 static void ap3426_als_disable_work(struct work_struct *work)
 {
 	struct ap3426_data *di = container_of(work, struct ap3426_data,
@@ -1431,6 +1433,7 @@ static int ap3426_cdev_ps_calibrate(struct sensors_classdev *sensors_cdev,
 	int count = AP3426_CALIBRATE_SAMPLES;
 	struct ap3426_data *di = container_of(sensors_cdev,
 			struct ap3426_data, ps_cdev);
+
 
 	if (axis != AXIS_BIAS)
 		return 0;
@@ -1941,6 +1944,7 @@ static int ap3426_suspend(struct device *dev)
 						AP3426_REG_CONFIG, res);
 				goto exit;
 			}
+
 
 			res = regmap_write(di->regmap, AP3426_REG_CONFIG,
 					config & (~0x1));

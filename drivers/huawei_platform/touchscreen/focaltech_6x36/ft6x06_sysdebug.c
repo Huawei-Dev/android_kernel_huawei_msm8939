@@ -111,6 +111,7 @@ static ssize_t ft6x06_fwupgradeapp_show(struct device *dev,
 	return -EPERM;
 }
 
+
 /*upgrade from app.bin*/
 static ssize_t ft6x06_fwupgradeapp_store(struct device *dev,
 					struct device_attribute *attr,
@@ -271,6 +272,7 @@ static ssize_t ft6x06_ftsgetprojectcode_store(struct device *dev,
 static DEVICE_ATTR(ftstpfwver, S_IRUGO | S_IWUSR, ft6x06_tpfwver_show,
 			ft6x06_tpfwver_store);
 
+
 /*read and write register
 *read example: echo 88 > ftstprwreg ---read register 0x88
 *write example:echo 8807 > ftstprwreg ---write 0x07 into register 0x88
@@ -279,6 +281,7 @@ static DEVICE_ATTR(ftstpfwver, S_IRUGO | S_IWUSR, ft6x06_tpfwver_show,
 */
 static DEVICE_ATTR(ftstprwreg, S_IRUGO | S_IWUSR, ft6x06_tprwreg_show,
 			ft6x06_tprwreg_store);
+
 
 /*upgrade from app.bin
 *example:echo "*_app.bin" > ftsfwupgradeapp

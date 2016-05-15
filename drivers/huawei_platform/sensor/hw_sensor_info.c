@@ -33,6 +33,7 @@
 #include <linux/types.h>
 #include <huawei_platform/sensor/hw_sensor_info.h>
 
+
 int hwsensor_debug_mask = 1;
 module_param_named(hwsensor_debug, hwsensor_debug_mask, int, S_IRUGO | S_IWUSR | S_IWGRP);
 #define HWSENSOR_ERR(x...) do {\
@@ -51,6 +52,7 @@ module_param_named(hwsensor_debug, hwsensor_debug_mask, int, S_IRUGO | S_IWUSR |
     if (hwsensor_debug_mask >=2) \
         printk(KERN_ERR x);\
     } while (0)
+
 
 struct sensor_info{
 	struct platform_driver sensor_info_drv;
@@ -112,6 +114,7 @@ static struct sensor_info sensor_info_instance = {
 	},
 	.sensor_info_dev = 	NULL,
 };
+
 
 static int __init hw_sensor_info_init(void)
 {

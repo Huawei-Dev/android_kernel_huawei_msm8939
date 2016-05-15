@@ -38,7 +38,7 @@
 #include	<linux/regulator/consumer.h>
 #include	<linux/of_gpio.h>
 #include	<linux/sensors.h>
-#include	<linux/dsm_pub.h>
+#include	<dsm/dsm_pub.h>
 #include	<huawei_platform/sensor/hw_sensor_info.h>
 #include	<huawei_platform/sensor/lis3dh.h>
 
@@ -47,6 +47,7 @@ static struct dsm_client *lis3dh_gs_dclient = NULL;
 static int lis_dump_gsensor_info (int type, void *buff, int size);
 static ssize_t lis_gsensor_report_dsm_err(int type,bool auto_report_flag);
 extern int lis3dh_debug_mask;
+
 
 /* add gsensor dump_func */
 static struct dsm_client_ops gs_ops={
@@ -60,6 +61,7 @@ static struct dsm_dev dsm_gs_lis_i2c = {
 	.fops 		= &gs_ops,				// options
 	.buff_size 	= DSM_SENSOR_BUF_MAX,		// buffer size
 };
+
 
 /*
 * check the current data is error or not
@@ -76,6 +78,7 @@ static inline bool lis_exception_condition(int x, int y,int z,struct lis_gsensor
 			 || abs(z) > excep->single_axis_max
 			) ? true : false;
 }
+
 
 /*
 * if i2c transfer error, we check sda/scl value and regulator's value
@@ -99,6 +102,7 @@ static int lis_dump_i2c_exception_status(struct lis3dh_acc_data *acceld, int ret
 
 	return 0;
 }
+
 
 /**
  * func - lis_check_exception
@@ -174,6 +178,7 @@ this delete point is only three axis hold it's data more than twentity times the
 	}
 	return 0;
 }
+
 
 /**
  * func - lis_exception_2s_timer_handler
@@ -291,6 +296,7 @@ static void lis_exit_excep_timer(struct lis3dh_acc_data *acceld)
 	del_timer_sync(&acceld->gsensor_excep_timer);
 }
 
+
 /**
  * func - lis_gsensor_dsm_init
  *
@@ -391,6 +397,7 @@ static void lis_gsensor_read_register_info(struct lis3dh_acc_data  *acceld,bool 
 	/* delete here, otherwise will cause dead lock*/
 
 }
+
 
 /**
  * func - after read sda/scl, vdd/vddio value, and report info to dsm server.
@@ -563,6 +570,7 @@ static int lis_dump_gsensor_info(int type, void *buff, int size)
 	return lis3dh_gs_dclient->used_size;
 }
 
+
 /**
  * func - register some call back func to check exception and report error.
  *
@@ -586,6 +594,8 @@ static int register_lis3dh_dsm_operations(struct lis3dh_acc_data  *acceld)
 	/*delete some line*/
 	return 0;
 }
+
+
 
 static ssize_t attr_get_excep_base(struct device *dev,
 				struct device_attribute *attr, char *buf)
@@ -646,10 +656,13 @@ static ssize_t attr_get_registers_value(struct device *dev,
 			,reg[0],reg[1],reg[2],reg[3],reg[4],reg[5]);
 }
 
+
+
 static struct device_attribute dbg_attributes[] = {
 	__ATTR(excep_base, 0664, attr_get_excep_base,attr_set_excep_base),
 	__ATTR(dump_regs, 0444, attr_get_registers_value,NULL),
 };
+
 
 int lis_dsm_excep_init(struct lis3dh_acc_data  *acc)
 {
@@ -687,6 +700,7 @@ err_unregister_dsm:
 
 }
 
+
 void lis_dsm_excep_exit(struct lis3dh_acc_data  *acc)
 {
 	int i = 0;
@@ -708,4 +722,5 @@ void lis_dsm_excep_exit(struct lis3dh_acc_data  *acc)
 	LIS3DH_INFO("[lis3dh_info]unregister lis3dh dsm_client.\n");
 }
 #endif
+
 

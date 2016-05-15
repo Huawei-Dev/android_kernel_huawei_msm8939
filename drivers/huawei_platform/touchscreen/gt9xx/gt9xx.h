@@ -263,6 +263,7 @@ extern u16 total_len;
 				IRQ_TYPE_LEVEL_HIGH\
 				}
 
+
 /***************************PART3:OTHER define*********************************/
 #define GTP_DRIVER_VERSION		"V1.8<2013/06/08>"
 #define GTP_I2C_NAME			"Goodix-TS"
@@ -274,6 +275,7 @@ extern u16 total_len;
 #define SUCCESS					1
 #define SWITCH_OFF				0
 #define SWITCH_ON				1
+
 
 //******************** For GT9XXF Start **********************//
 #define GTP_REG_BAK_REF                 0x99D0
@@ -305,6 +307,10 @@ extern u16 total_len;
 #define GTP_RQST_IDLE                   0xFF
 
 //******************** For GT9XXF End **********************//
+
+
+
+
 
 /* Registers define */
 #define GTP_READ_COOR_ADDR		0x814E

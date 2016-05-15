@@ -58,6 +58,7 @@ static struct msm_camera_i2c_reg_array mp3331_init_array[] = {
     {0x0a, 0x05},/*torch current:158.5mA*/
 };
 
+
 static struct msm_camera_i2c_reg_array mp3331_off_array[] = {
     {0x01, 0xA0},/*set to standby mode*/
 };
@@ -83,6 +84,7 @@ static struct msm_camera_i2c_reg_array mp3331_torch_array[] = {
     {0x0A, 0x05},/*set current:31.7*5=158.5mA*/
     {0x01, 0xB4},/*enable current source*/
 };
+
 
 static const struct of_device_id mp3331_i2c_trigger_dt_match[] = {
     {.compatible = "mps,mp3331"},
@@ -184,6 +186,7 @@ static void camera_report_flash_mp3331_dsm_err(uint16_t flash_reg, int rc_value)
     return;
 }
 #endif
+
 
 /****************************************************************************
 * FunctionName: msm_flash_clear_err_and_unlock;
@@ -463,6 +466,7 @@ static int32_t msm_flash_mp3331_match_id(struct msm_led_flash_ctrl_t *fctrl)
 
 }
 
+
 static int msm_flash_mp3331_i2c_probe(struct i2c_client *client, const struct i2c_device_id *id)
 {
     struct msm_camera_sensor_board_info *flashdata = NULL;
@@ -572,6 +576,7 @@ static void __exit msm_flash_mp3331_exit(void)
     i2c_del_driver(&mp3331_i2c_driver);
     return;
 }
+
 
 static struct msm_camera_i2c_client mp3331_i2c_client = {
     .addr_type = MSM_CAMERA_I2C_BYTE_ADDR,

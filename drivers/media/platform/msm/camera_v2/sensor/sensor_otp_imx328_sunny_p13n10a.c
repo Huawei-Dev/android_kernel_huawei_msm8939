@@ -1,22 +1,12 @@
-/*******************************************************************
-  Copyright (C), 1988-1999, Huawei Tech. Co., Ltd.
-  File name         : sensor_otp_imx328_sunny_p13n10a.c
-  Version           : Initial Draft
-  Date              : 2014/08/11
-  Description       : this file contains the functions to detect and read
-                      imx328_sunny camera's OTP memory info.
-  Function List     :
-            imx328_sunny_p13n10a_otp_func
-  History           :
-  1.Date          : 2014/08/11
-    Modification  : Created File
-********************************************************************/
+
 #define HW_CMR_LOG_TAG "sensor_otp_imx328_sunny_p13n10a"
 #include <linux/hw_camera_common.h>
 #include <media/msm_cam_sensor.h>
 #include "msm_cci.h"
 #include "msm_sensor.h"
 #include "sensor_otp_common_if.h"
+
+
 
 #define IMX328_SLAVE_ADDR 0x20
 

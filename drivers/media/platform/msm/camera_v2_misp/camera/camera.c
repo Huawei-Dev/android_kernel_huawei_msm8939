@@ -10,6 +10,7 @@
  * GNU General Public License for more details.
  */
 
+
 #include <linux/of.h>
 #include <linux/module.h>
 #include <linux/workqueue.h>
@@ -367,6 +368,7 @@ static int camera_v4l2_try_fmt_vid_cap_mplane(struct file *filep, void *fh,
 {
 	return 0;
 }
+
 
 static int camera_v4l2_g_parm(struct file *filep, void *fh,
 	struct v4l2_streamparm *a)

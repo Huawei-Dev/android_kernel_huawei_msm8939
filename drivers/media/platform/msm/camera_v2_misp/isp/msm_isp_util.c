@@ -84,6 +84,7 @@ static struct msm_bus_scale_pdata msm_isp_bus_client_pdata = {
 	.name = "msm_camera_isp",
 };
 
+
 void msm_camera_io_dump_2(void __iomem *addr, int size)
 {
 	char line_str[128], *p_str;
@@ -666,6 +667,7 @@ static int msm_isp_proc_cmd_list(struct vfe_device *vfe_dev, void *arg)
 }
 #endif /* CONFIG_COMPAT */
 
+
 static long msm_isp_ioctl_unlocked(struct v4l2_subdev *sd,
 	unsigned int cmd, void *arg)
 {
@@ -808,6 +810,7 @@ static long msm_isp_ioctl_unlocked(struct v4l2_subdev *sd,
 	}
 	return rc;
 }
+
 
 #ifdef CONFIG_COMPAT
 static long msm_isp_ioctl_compat(struct v4l2_subdev *sd,

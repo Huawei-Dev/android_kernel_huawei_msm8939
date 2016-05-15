@@ -40,7 +40,7 @@
 #include <linux/log_jank.h>
 #endif
 #ifdef CONFIG_HUAWEI_DSM
-#include <linux/dsm_pub.h>
+#include <dsm/dsm_pub.h>
 #endif
 #ifdef CONFIG_HUAWEI_PMU_DSM
 #include <linux/power/huawei_dsm_charger.h>
@@ -356,6 +356,7 @@ int huawei_charger_get_battery_temperature(void)
     int rc = 0;
     struct qpnp_vadc_result results;
     struct charge_device_info *di = NULL;
+    union power_supply_propval val;
 
     di = g_charger_device_para;
     if(NULL == di)
@@ -369,14 +370,27 @@ int huawei_charger_get_battery_temperature(void)
         return BATT_ABSENT_TEMP;
     }
 
-    rc = qpnp_vadc_read(di->vadc_dev, LR_MUX1_BATT_THERM, &results);
-    if (rc)
+    if (di->bms_psy)
     {
-        pmu_log_err("Unable to read batt temperature rc=%d\n", rc);
-        return BATT_DEFAULT_TEMP;
+        rc = di->bms_psy->get_property(di->bms_psy, POWER_SUPPLY_PROP_TEMP, &val);
+        if (rc)
+        {
+            pmu_log_err("Unable to get batt temp from ti bms\n");
+            return BATT_DEFAULT_TEMP;
+        }
+        return val.intval;
     }
+    else
+    {
+        rc = qpnp_vadc_read(di->vadc_dev, LR_MUX1_BATT_THERM, &results);
+        if (rc)
+        {
+            pmu_log_err("Unable to read batt temperature rc=%d\n", rc);
+            return BATT_DEFAULT_TEMP;
+        }
 
-    return (int)results.physical;
+        return (int)results.physical;
+    }
 }
 
 int huawei_charger_get_ilimit_voltage(void)
@@ -1113,6 +1127,7 @@ static int huawei_charger_load_battery_data(struct charge_device_info *di)
     struct bms_battery_data batt_data;
     struct device_node *node;
     struct qpnp_vadc_result result;
+    int batt_type_len = 0;
     int rc;
 
     node = of_find_node_by_name(di->spmi->dev.of_node,
@@ -1137,6 +1152,11 @@ static int huawei_charger_load_battery_data(struct charge_device_info *di)
             pmu_log_err("failed to read battery data: %d\n", rc);
             batt_data = palladium_1500_data;
         }
+
+        batt_type_len = (MAX_SIZE > strlen(batt_data.battery_type)) ?
+                        strlen(batt_data.battery_type) : (MAX_SIZE - 1);
+        if (batt_data.battery_type)
+            strncpy(di->batt_type, batt_data.battery_type, (batt_type_len + 1));
 
         if (batt_data.warm_bat_decidegc || batt_data.cool_bat_decidegc)
         {
@@ -1591,10 +1611,6 @@ static irqreturn_t huawei_charger_usbin_valid_irq_handler(int irq, void *data)
     usb_present = huawei_charger_vbus_is_exist(di);
     pmu_log_info("usbin-valid triggered: %d\n", usb_present);
 
-    if(MAX77819_CHARGER == g_charger_core_para->charger_type_info.charger_index)
-    {
-        do_max77819_dcin_valid_irq(usb_present);
-    }
 #ifdef CONFIG_LOG_JANK
     schedule_work(&di->usbin_janklog_work);
 #endif
@@ -1706,6 +1722,16 @@ static int huawei_charger_reg_base_props(struct device_node* np, struct charge_d
     }
     pmu_log_info("ibus_mpp = 0x%x\n",di->ibus_mpp);
 
+    ret = of_property_read_string(np, "batt-temp-bms", &di->batt_temp_bms);
+    if (ret)
+    {
+        di->batt_temp_bms = NULL;
+    }
+    else
+    {
+        pmu_log_info("use bms (%s) to monitor battery temp!\n", di->batt_temp_bms);
+    }
+
     return 0;
 }
 
@@ -1742,6 +1768,18 @@ static void free_ops_info(void)
     return ;
 }
 
+char *g_batt_type = NULL;
+char *huawei_charger_batt_type(void)
+{
+    char *batt_type = g_batt_type;
+
+    if (NULL == batt_type) {
+        pmu_log_err("get battery type failed\n");
+        return NULL;
+    }
+    return batt_type;
+}
+
 /**********************************************************
 *  Function:       charge_probe
 *  Discription:    chargre module probe
@@ -1755,12 +1793,22 @@ static int charge_probe(struct spmi_device *pdev)
     struct class *power_class = NULL;
     struct power_supply *usb_psy;
     struct power_supply *batt_psy;
+    struct power_supply *bms_psy;
     int ret = 0;
 #ifdef CONFIG_HUAWEI_PMU_DSM
     struct dsm_charger_ops *chg_ops = NULL;
     struct dsm_bms_ops *bms_ops = NULL;
 #endif
 
+    di = devm_kzalloc(&pdev->dev, sizeof(struct charge_device_info),GFP_KERNEL);
+    if (!di)
+    {
+        pmu_log_err("memory allocation failed.\n");
+        return -ENOMEM;
+    }
+
+    np = pdev->dev.of_node;
+    huawei_charger_reg_base_props(np, di);
     usb_psy = power_supply_get_by_name("usb");
     if (!usb_psy)
     {
@@ -1773,13 +1821,16 @@ static int charge_probe(struct spmi_device *pdev)
         pmu_log_err("batt supply not found deferring probe\n");
         return -EPROBE_DEFER;
     }
-
-    di = devm_kzalloc(&pdev->dev, sizeof(struct charge_device_info),GFP_KERNEL);
-    if (!di)
-    {
-        pmu_log_err("memory allocation failed.\n");
-        return -ENOMEM;
+    if (di->batt_temp_bms) {
+        bms_psy = power_supply_get_by_name(di->batt_temp_bms);
+        if (!bms_psy) {
+            pmu_log_err("bms supply not found deferring probe\n");
+            return -EPROBE_DEFER;
+        }
+    } else {
+        bms_psy = NULL;
     }
+
 
     di->core_data = (struct charge_core_data*)kzalloc(sizeof(struct charge_core_data), GFP_KERNEL);
     if(NULL == di->core_data)
@@ -1788,13 +1839,13 @@ static int charge_probe(struct spmi_device *pdev)
         goto charge_fail_0;
     }
 
-    np = pdev->dev.of_node;
     di->dev = &pdev->dev;
     di->spmi = pdev;
     di->vadc_dev = g_charger_core_para->vadc_dev;
     dev_set_drvdata(&pdev->dev, di);
     di->usb_psy = usb_psy;
     di->batt_psy = batt_psy;
+    di->bms_psy = bms_psy;
     device_init_wakeup(&pdev->dev, 1);
 
     /* move to the end of probe */
@@ -1803,6 +1854,12 @@ static int charge_probe(struct spmi_device *pdev)
     {
         huawei_charger_load_battery_data(di);
     }
+
+    if (di->batt_type)
+    {
+        g_batt_type = di->batt_type;
+    }
+
     di->running_test_settled_status = POWER_SUPPLY_STATUS_CHARGING;
 
     di->ops = g_ops;
@@ -1818,7 +1875,7 @@ static int charge_probe(struct spmi_device *pdev)
     wake_lock_init(&di->chg_wake_lock, WAKE_LOCK_SUSPEND, "charge_wakelock");
     wake_lock_init(&di->led_wake_lock, WAKE_LOCK_SUSPEND, "charge_led");
 
-    huawei_charger_reg_base_props(np, di);
+/* move farward */
 
     /*delte unused code */
     di->core_data = &g_charger_core_para->data;
@@ -2049,7 +2106,7 @@ static int __init charge_init(void)
 {
     struct charger_core_info *di = NULL;
 
-    pmu_log_info("huawei_charger.c driver init!\n");
+    pmu_log_info("huawei_charger driver init!\n");
 
     di = charge_core_get_params();
     if(NULL == di)

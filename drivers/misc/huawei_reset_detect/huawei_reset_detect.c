@@ -26,6 +26,7 @@
 #define TRUE 1
 #define FALSE 0
 
+
 static void *reset_magic_addr = NULL;
 
 void raw_writel(unsigned long value,void *p_addr)
@@ -65,18 +66,23 @@ void clear_reset_magic()
     mb();
 }
 
+
 static int huawei_apanic_handler(struct notifier_block *this,
 				  unsigned long event, void *ptr)
 {
+    int magic_number_test=0;
 	pr_info(RESET_DETECT_TAG "huawei_apanic_handler enters \n");
+
 
 #ifdef CONFIG_PREEMPT
 	/* Ensure that cond_resched() won't try to preempt anybody */
 	add_preempt_count(PREEMPT_ACTIVE);
 #endif
-
-    set_reset_magic(RESET_MAGIC_APANIC);
-
+    magic_number_test= raw_readl(reset_magic_addr);
+    if(magic_number_test!= LONG_PRESS_RESET_REASON_MAGIC_NUM)
+    {
+        set_reset_magic(RESET_MAGIC_APANIC);
+    }
 #ifdef CONFIG_PREEMPT
         sub_preempt_count(PREEMPT_ACTIVE);
 #endif
@@ -95,6 +101,7 @@ static void register_huawei_apanic_notifier(void)
     atomic_notifier_chain_register(&panic_notifier_list, &huawei_apanic_event_nb);
 }
 
+
 static int reset_magic_open(struct inode *inode, struct file *file)
 {
 	pr_debug(RESET_DETECT_TAG "%s enter\n", __func__);
@@ -106,6 +113,7 @@ static int reset_magic_release(struct inode *inode, struct file *file)
  	pr_debug(RESET_DETECT_TAG "%s enter\n", __func__); 
 	return 0;
 }
+
 
 static ssize_t reset_magic_read(struct file *file, char __user *buf, size_t count,
 			     loff_t *pos)
@@ -132,6 +140,7 @@ static ssize_t reset_magic_read(struct file *file, char __user *buf, size_t coun
 	return count;
 }
 
+
 static ssize_t reset_magic_write(struct file *fp, const char __user *buf,
               size_t count, loff_t *pos)
 {
@@ -155,6 +164,7 @@ static ssize_t reset_magic_write(struct file *fp, const char __user *buf,
 	return count;
 }
 
+
 static const struct file_operations reset_magic_fops = {
 	.owner = THIS_MODULE,
 	.open = reset_magic_open,
@@ -168,6 +178,8 @@ static struct miscdevice reset_magic_miscdev = {
 	.name = "reset_magic",
 	.fops = &reset_magic_fops
 };
+
+
 
 static int __init reset_magic_address_get(void)
 {
@@ -192,6 +204,8 @@ static int __init reset_magic_address_get(void)
     return 0;
 }
 
+
+
 static int __init huawei_reset_detect_init(void)
 {
     int ret = 0;
@@ -205,6 +219,7 @@ static int __init huawei_reset_detect_init(void)
     
     /* regitster the panic & reboot notifier */
     register_huawei_apanic_notifier();
+
 
 	misc_register(&reset_magic_miscdev);
 

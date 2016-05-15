@@ -182,3 +182,5 @@ obj-$(CONFIG_SRECORDER)     += srecorder/
 obj-$(CONFIG_HUAWEI_DRIVERS)    += huawei_platform/
 
 obj-$(CONFIG_ANDROID)		+= android/
+obj-y += hwusb/
+obj-$(CONFIG_HUAWEI_DSM)    += dsm/

@@ -144,6 +144,7 @@
 		st,min-interval = <5>;
 		st,init-interval = <200>;
 		lis3dh,use-hrtimer;
+		lis3dh,gsensor-need-filter;
 		st,axis-map-x = <0>;
 		st,axis-map-y = <1>;
 		st,axis-map-z = <2>;

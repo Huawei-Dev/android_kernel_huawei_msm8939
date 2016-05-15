@@ -1180,6 +1180,7 @@ static void msm_isp_update_camif_output_count(
 	}
 }
 
+
 static void msm_isp_update_rdi_output_count(
 	  struct vfe_device *vfe_dev,
 	  struct msm_vfe_axi_stream_cfg_cmd *stream_cfg_cmd)
@@ -1695,6 +1696,7 @@ static int msm_isp_stop_axi_stream(struct vfe_device *vfe_dev,
 
 	return rc;
 }
+
 
 int msm_isp_cfg_axi_stream(struct vfe_device *vfe_dev, void *arg)
 {

@@ -69,6 +69,11 @@ config ARM64
 	help
 	  ARM 64-bit (AArch64) Linux support.
 
+config EFS_ENLARGE_FEATURE
+	bool "enlarge efs ram size"
+	help
+	  support volte product enlarge efs ram size
+
 config 64BIT
 	def_bool y
 

@@ -1,6 +1,7 @@
 /************************************************************
   Copyright (C), 1988-2014, Huawei Tech. Co., Ltd.
 FileName: sensor_otp_ov8858_foxconn.c
+Author:  yWX221546
 Version :Initial Draft
 Date: 2014/05/14
 Description:    this file contion several functions to detect otp_ov5648 properties
@@ -8,6 +9,7 @@ Version:         Initial Draft
 History:
 History        :
 1.Date        : 2014/06/12
+Author        : yWX221546
 Modification : Created function
  ***********************************************************/
 
@@ -35,7 +37,7 @@ Modification : Created function
 #define OV8858_MAX_OTP_LENS_NUM 110
 
 //the value used for vcm effect, maybe modified by others 
-#define OV8858_OTP_VCM_OFFSET_VALUE            60
+#define OV8858_OTP_VCM_OFFSET_VALUE            (200)
 
 //OV8858 has three groups: [1,2,3]
 typedef enum ov8858_groups_count{
@@ -686,6 +688,7 @@ int ov8858_foxconn_otp_func(struct msm_sensor_ctrl_t *s_ctrl,int index)
 		BG_Ratio_Typical = otp_function_lists[index].bg_ratio_typical;
 	}
 	CMR_LOGD("%s, rg_ratio_typical=%04x,bg_ratio_typical=%04x\n", __func__,RG_Ratio_Typical,BG_Ratio_Typical );
+
 
 	//Get otp info on the first time
 	if ( 0 == i_read_otp )

@@ -1,4 +1,5 @@
 
+
 config FOCALTECH_F6X06_TP_ENABLE
 	bool "Enable Focaltech for Ft6x06-Tp Driver"
 	depends on TOUCHSCREEN_HUAWEI_FOCALTECH_FT6X06
@@ -35,4 +36,3 @@ config FOCALTECH_FT6X06_SYSDEBUG
 	  the first file for ft6x06 sysdebug  
 
 #delete define of FOCALTECH_FT6X06_SCAP_TEST
-

@@ -1,8 +1,8 @@
 //*****************************************************************************
 //*****************************************************************************
 //  FILENAME: Driver.h
-//  TrueTouch Host Emulator Version Information: 3.3, b325
-//  TrueTouch Firmware Version Information: 1.0.838225
+//  TrueTouch Host Emulator Version Information: 3.3, b861
+//  TrueTouch Firmware Version Information: 1.0.851840
 //
 //  DESCRIPTION: This file contains configuration values.
 //-----------------------------------------------------------------------------
@@ -12,7 +12,7 @@
 //-----------------------------------------------------------------------------
 /* Touchscreen Version Information */
 static u8 ttconfig_fw_ver_kiwi_gis[] = {
-	0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x0C, 0xCA, 0x51, 0x0B, 0x00, 0x11, 0x9B, 0x00, 0x06
+	0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x0C, 0xFF, 0x80, 0x0B, 0x00, 0x11, 0x9B, 0x00, 0x0C
 };
 #if 0
 /* Touchscreen Parameters Endianess (Endianess: 0:Little; 1:Big)*/
@@ -21,8 +21,8 @@ static const uint8_t cyttsp4_param_endianess = 0;
 /* Touchscreen Parameters */
 static const uint8_t cyttsp5_param_regs_kiwi_gis[] = {
 /*	Value	Name	*/
-	0x08, 0x05,  /* CONFIG_DATA_SIZE */
-	0x08, 0x05,  /* CONFIG_DATA_MAX_SIZE */
+	0x1C, 0x05,  /* CONFIG_DATA_SIZE */
+	0x1C, 0x05,  /* CONFIG_DATA_MAX_SIZE */
 	0x38, 0x04,  /* X_RESOLUTION */
 	0x80, 0x07,  /* Y_RESOLUTION */
 	0x20, 0x1B,  /* X_LEN_PHY */
@@ -107,12 +107,12 @@ static const uint8_t cyttsp5_param_regs_kiwi_gis[] = {
 	0xFF, 0xFF,  /* OVERFLOW_CNT_BUTTON_THRESHOLD */
 	0xF4, 0x01,  /* OVERFLOW_CNT_OFF_DEBOUNCE_TIME */
 	0x00, 0x00,  /* OVERFLOW_CNT_BUTTON_OFF_DEBOUNCE_TIME */
-	0x24, 0x01,  /* TX_PERIOD_MUTUAL */
+	0x2F, 0x01,  /* TX_PERIOD_MUTUAL */
 	0x13, 0x00,  /* TX_PULSES_NUM_MUTUAL */
-	0x24, 0x01,  /* CA_TX_PERIOD_MUTUAL */
+	0x2F, 0x01,  /* CA_TX_PERIOD_MUTUAL */
 	0x24, 0x00,  /* CA_BASE_TX_PULSES_NUM_MUTUAL */
-	0xC8, 0x00,  /* CA_HOP0_TX_PERIOD_MUTUAL */
-	0x37, 0x00,  /* CA_HOP0_TX_PULSES_NUM_MUTUAL */
+	0x2C, 0x01,  /* CA_HOP0_TX_PERIOD_MUTUAL */
+	0x28, 0x00,  /* CA_HOP0_TX_PULSES_NUM_MUTUAL */
 	0xEB, 0x00,  /* CA_HOP1_TX_PERIOD_MUTUAL */
 	0x32, 0x00,  /* CA_HOP1_TX_PULSES_NUM_MUTUAL */
 	0x09, 0x01,  /* CA_HOP2_TX_PERIOD_MUTUAL */
@@ -129,7 +129,7 @@ static const uint8_t cyttsp5_param_regs_kiwi_gis[] = {
 	0x20, 0x00,  /* TX_PULSES_NUM_BUTTON_SELF */
 	0xA0, 0x00,  /* TX_PERIOD_PROX */
 	0x40, 0x00,  /* TX_PULSES_NUM_PROXIMITY */
-	0x24, 0x01,  /* TX_PERIOD_GLOVE_MUTUAL */
+	0x2F, 0x01,  /* TX_PERIOD_GLOVE_MUTUAL */
 	0x13, 0x00,  /* TX_PULSES_NUM_GLOVE_MUTUAL */
 	0x31, 0x01,  /* TX_PERIOD_GLOVE_SELF */
 	0x37, 0x00,  /* TX_PULSES_NUM_GLOVE_SELF */
@@ -313,9 +313,9 @@ static const uint8_t cyttsp5_param_regs_kiwi_gis[] = {
 	0x03,  /* FILT_FILTER_MASK_GLOVE_MUT */
 	0x02,  /* FILT_IIR_COEFF_GLOVE_MUT */
 	0x82, 0x00,  /* FILT_IIR_THRESHOLD_GLOVE_MUT */
-	0x96, 0x00,  /* FILT_CMF_THRESHOLD_GLOVE_MUT */
+	0x50, 0x00,  /* FILT_CMF_THRESHOLD_GLOVE_MUT */
 	0x03,  /* FILT_FILTER_MASK_GLOVE_SELF */
-	0x02,  /* FILT_IIR_COEFF_GLOVE_SELF */
+	0x00,  /* FILT_IIR_COEFF_GLOVE_SELF */
 	0xE8, 0x03,  /* FILT_IIR_THRESHOLD_GLOVE_SELF */
 	0xE8, 0x03,  /* FILT_CMF_THRESHOLD_GLOVE_SELF */
 	0x03,  /* Reserved662 */
@@ -340,19 +340,21 @@ static const uint8_t cyttsp5_param_regs_kiwi_gis[] = {
 	0x06,  /* AFH_LISTENING_SCAN_COUNT */
 	0xA0, 0x0F,  /* CA_INJTCH_MAGNITUDE */
 	0xE8, 0x03,  /* CA_INJTCH_FINGER_THOLD */
-	0xE8, 0x03, 0x00, 0x00,  /* CA_DEFAULT_REVERT_TIME */
-	0x2C, 0x01, 0x00, 0x00,  /* CA_DIFF_ABS_DELTA_SUM_THRESHOLD */
-	0xD0, 0x07, 0x00, 0x00,  /* CA_STUCKTOUCH_REVERT_TIME */
+	0xB8, 0x0B, 0x00, 0x00,  /* CA_DEFAULT_REVERT_TIME */
+	0x2C, 0x01, 0x00, 0x00,  /* CA_L1_DIFF_ABS_DELTA_SUM_THRESHOLD */
+	0xE8, 0x03, 0x00, 0x00,  /* CA_L2_DIFF_ABS_DELTA_SUM_THRESHOLD */
+	0xE8, 0x03, 0x00, 0x00,  /* CA_L3_DIFF_ABS_DELTA_SUM_THRESHOLD */
+	0x88, 0x13, 0x00, 0x00,  /* CA_STUCKTOUCH_REVERT_TIME */
 	0x06, 0x00,  /* DETECT_CHARGER_THRESHOLD */
 	0x12, 0x00,  /* NM_INJ_TCH_THRESHOLD */
 	0x01,  /* CA_WB_CMF_ENABLE */
-	0x0A,  /* CA_WB_REVERT_THOLD */
+	0x08,  /* CA_WB_REVERT_THOLD */
 	0x00,  /* TRIGGER_CA */
 	0x4B,  /* CA_DYN_CAL_NUM_SENSOR_THLD_PERCENT */
 	0x1A, 0x00,  /* CA_DYN_CAL_SAFE_RAW_RANGE */
-	0xC8, 0x00,  /* CA_DYN_FINGER_THRESH */
+	0x84, 0x03,  /* CA_DYN_FINGER_THRESH */
 	0x00, 0x80,  /* CA_MIN_SELF_ALLOWED */
-	0x00, 0x00,  /* Reserved714 */
+	0x00, 0x00,  /* Reserved722 */
 	0x01,  /* ACT_LFT_EN */
 	0x1E,  /* INNER_EDGE_GAIN */
 	0x5A,  /* OUTER_EDGE_GAIN */
@@ -361,11 +363,11 @@ static const uint8_t cyttsp5_param_regs_kiwi_gis[] = {
 	0x64, 0x00,  /* LP_INTRVL0 */
 	0xE8, 0x03,  /* TCH_TMOUT0 */
 	0xA0, 0x00,  /* FINGER_THRESH_SELF */
+	0xA0, 0x00,  /* SINGLE_FINGER_THRESH_SELF */
 	0x00, 0x00,  /* GLOVE_THRSH_SELF */
 	0x00,  /* LOW_POWER_ENABLE */
 	0x1E,  /* WATER_ON_EDGE_RX_SELF_DROP_DELTA */
 	0xBC, 0x02,  /* WATER_ON_EDGE_RX_SELF_DROP_THRESHOLD */
-	0x00, 0x00,  /* Reserved734 */
 	0x0D,  /* ACT_DIST0 */
 	0x00,  /* ACT_DIST2 */
 	0x00,  /* ACT_DIST_FAST */
@@ -379,7 +381,7 @@ static const uint8_t cyttsp5_param_regs_kiwi_gis[] = {
 	0x00,  /* FIRST_TOUCH_SUPPRESSION */
 	0x1E,  /* FIRST_TOUCH_EDGE_AREA */
 	0x01,  /* OBJ_WITHHOLD_CFG */
-	0x00, 0x00, 0x00,  /* Reserved749 */
+	0x00, 0x00, 0x00,  /* Reserved757 */
 	0x04, 0x17, 0x03, 0x00,  /* FINGER_ID_MAX_FINGER_VELOCITY2 */
 	0xC8, 0xAF, 0x00, 0x00,  /* FINGER_ID_MAX_FINGER_ACCELERATION2 */
 	0x00, 0x00,  /* GRIP_XEDG_A */
@@ -393,15 +395,17 @@ static const uint8_t cyttsp5_param_regs_kiwi_gis[] = {
 	0x01,  /* GRIP_FIRST_EXC */
 	0x00,  /* GRIP_EXC_EDGE_ORIGIN */
 	0x00,  /* GRIP_ENABLE */
-	0x04,  /* FINGER_ID_MAX_VEL_ACC_GLOVE_SCALE */
+	0x00,  /* Reserved787 */
+	0x40, 0x0C, 0xB3, 0x78,  /* GLOVE_ID_MAX_GLOVE_VELOCITY2 */
+	0x80, 0xD2, 0xA2, 0xCD,  /* GLOVE_ID_MAX_GLOVE_ACCELERATION2 */
 	0x96, 0x00,  /* GLOVE_FIRST_TOUCH_ACT_DISTANCE */
 	0x00,  /* LIFTOFF_DEBOUNCE */
 	0x00,  /* LIFTOFF_DEBOUNCE_PROXIMITY */
 	0x00,  /* LIFTOFF_DEBOUNCE_STYLUS */
 	0x00,  /* LIFTOFF_DEBOUNCE_HOVER */
 	0x0F,  /* GLOVE_LIFTOFF_DEBOUNCE */
-	0x00,  /* Reserved787 */
-	0x64, 0x00,  /* TOUCHMODE_GLOVE_SWITCH_DEBOUNCE */
+	0x00,  /* Reserved803 */
+	0x19, 0x00,  /* TOUCHMODE_GLOVE_SWITCH_DEBOUNCE */
 	0x00, 0x00,  /* TOUCHMODE_FINGER_SWITCH_DEBOUNCE */
 	0x14, 0x00,  /* TOUCHMODE_GLOVE_FINGER_SWITCH_DEBOUNCE */
 	0x88, 0x13,  /* TOUCHMODE_GLOVE_EXIT_DELAY */
@@ -425,7 +429,7 @@ static const uint8_t cyttsp5_param_regs_kiwi_gis[] = {
 	0x00,  /* TCH_SUM_FILTER_METHOD */
 	0x08,  /* TCH_SUM_UPDATE_IIR_COEF */
 	0x55,  /* TCH_SUM_THRESH_COEF */
-	0x00, 0x00, 0x00,  /* Reserved821 */
+	0x00, 0x00, 0x00,  /* Reserved837 */
 	0x00,  /* BR2_ALWAYS_ON_FLAG */
 	0x28,  /* EDGE_DEBOUNCE_COUNT */
 	0x28, 0x00,  /* CALC_THRESHOLD */
@@ -451,7 +455,7 @@ static const uint8_t cyttsp5_param_regs_kiwi_gis[] = {
 	0x19,  /* GRADIENT_THRESHOLD */
 	0x04,  /* CORE_TO_CORNER_ZSUM_RATIO */
 	0x00,  /* FIXED_FINGER_SIZE */
-	0x00, 0x00,  /* Reserved878 */
+	0x00, 0x00,  /* Reserved894 */
 	0xA0, 0x0F, 0x00, 0x00,  /* MIN_FAT_FINGER_Z9 */
 	0x30, 0x75, 0x00, 0x00,  /* MAX_MULTI_FINGER_Z9 */
 	0xA0, 0x0F, 0x00, 0x00,  /* MIN_FAT_FINGER_SIG_SUM_ON_EDGE */
@@ -483,8 +487,8 @@ static const uint8_t cyttsp5_param_regs_kiwi_gis[] = {
 	0x08,  /* SENSOR_NUM_THRSH */
 	0x04,  /* SENSOR_NUM_THRSH_FINGER */
 	0x01,  /* DISCARD_SCAN */
-	0x00, 0x00,  /* Reserved934 */
-	0xB6, 0x03,  /* FINGER_THRESH_MUTUAL_ON */
+	0x00, 0x00,  /* Reserved950 */
+	0x20, 0x03,  /* FINGER_THRESH_MUTUAL_ON */
 	0x26, 0x02,  /* FINGER_THRESH_MUTUAL_OFF */
 	0x58, 0x02,  /* Z_SCALING */
 	0xE8, 0x03,  /* CA_FINGER_THRESHOLD_MUTUAL */
@@ -493,7 +497,7 @@ static const uint8_t cyttsp5_param_regs_kiwi_gis[] = {
 	0x05,  /* CA_MULTI_TOUCH_DEBOUNCE */
 	0x02,  /* CA_Z9_FILTER_SCALE */
 	0x00,  /* MTX_FAST_MOVE_WR_ENABLE */
-	0x00,  /* Reserved949 */
+	0x00,  /* Reserved965 */
 	0x1E, 0x00,  /* MTX_FAST_MOVE_WR_THRESHOLD */
 	0x0F, 0x00,  /* MAX_FAT_FINGER_SIZE_HYST */
 	0x28, 0x00,  /* MAX_FAT_FINGER_SIZE_ON */
@@ -507,11 +511,11 @@ static const uint8_t cyttsp5_param_regs_kiwi_gis[] = {
 	0x01,  /* RX_LINE_FILTER */
 	0x02,  /* RX_LINE_FILTER_DEBOUNCE */
 	0x32,  /* RX_LINE_FILTER_THRESHOLD */
-	0x00,  /* Reserved967 */
+	0x00,  /* Reserved983 */
 	0x20,  /* WF_Z8_THRESH_MULT */
 	0x40,  /* WF_Z24_THRESH_MULT */
 	0x04,  /* WF_REJECT_RANGE */
-	0x00,  /* Reserved971 */
+	0x00,  /* Reserved987 */
 	0x50,  /* BTN_LS_ON_THRSH_MUT_0 */
 	0x50,  /* BTN_LS_ON_THRSH_MUT_1 */
 	0x50,  /* BTN_LS_ON_THRSH_MUT_2 */
@@ -529,7 +533,7 @@ static const uint8_t cyttsp5_param_regs_kiwi_gis[] = {
 	0x28,  /* BTN_LS_OFF_THRSH_SELF_2 */
 	0x28,  /* BTN_LS_OFF_THRSH_SELF_3 */
 	0x00, 0x00,  /* BTN_LS_TOUCHDOWN_DEBOUNCE */
-	0x00, 0x00,  /* Reserved990 */
+	0x00, 0x00,  /* Reserved1006 */
 	0x14,  /* BTN_HS_ON_THRSH_MUT_0 */
 	0x14,  /* BTN_HS_ON_THRSH_MUT_1 */
 	0x14,  /* BTN_HS_ON_THRSH_MUT_2 */
@@ -547,7 +551,7 @@ static const uint8_t cyttsp5_param_regs_kiwi_gis[] = {
 	0x0A,  /* BTN_HS_OFF_THRSH_SELF_2 */
 	0x0A,  /* BTN_HS_OFF_THRSH_SELF_3 */
 	0x01, 0x00,  /* BTN_HS_TOUCHDOWN_DEBOUNCE */
-	0x00, 0x00,  /* Reserved1010 */
+	0x00, 0x00,  /* Reserved1026 */
 	0x0A, 0x00,  /* GLOVE_BTN_FORBID_DEBOUNCE */
 	0x28, 0x00,  /* GLOVE_BTN_TO_HIGHSEN_MODE_SWITCH_THRSH_MUT */
 	0x28, 0x00,  /* GLOVE_BTN_TO_HIGHSEN_MODE_SWITCH_THRSH_SELF */
@@ -555,11 +559,11 @@ static const uint8_t cyttsp5_param_regs_kiwi_gis[] = {
 	0x5E, 0x01,  /* GLOVE_BTN_TO_LOWSEN_MODE_SWITCH_THRSH_SELF */
 	0x01, 0x00,  /* GLOVE_BTN_MODE_SWITCH_DEBOUNCE */
 	0x00,  /* BTN_PROCESS_IF_TOUCH_DETECTED */
-	0x00,  /* Reserved1025 */
-	0x00, 0x00,  /* Reserved1026 */
+	0x00,  /* Reserved1041 */
+	0x00, 0x00,  /* Reserved1042 */
 	0xE8, 0x03,  /* TOUCHMODE_GLOVE_MAX_PEAK */
 	0xC8, 0x00,  /* GLOVE_ON_THRSH_MUTUAL */
-	0x64, 0x00,  /* GLOVE_OFF_THRSH_MUTUAL */
+	0x96, 0x00,  /* GLOVE_OFF_THRSH_MUTUAL */
 	0x04,  /* GLOVE_FIRST_TOUCH_DEBOUNCE */
 	0x00,  /* GLOVE_FIRST_TOUCH_DEBOUNCE_EDGE_MASK */
 	0x0F,  /* GLOVE_MULTI_TOUCH_DEBOUNCE */
@@ -574,10 +578,10 @@ static const uint8_t cyttsp5_param_regs_kiwi_gis[] = {
 	0x40,  /* GLOVE_SIGNAL_THRESHOLD_MULTIPLIER */
 	0x28,  /* GLOVE_INNER_EDGE_GAIN */
 	0x96,  /* GLOVE_OUTER_EDGE_GAIN */
-	0x00,  /* Reserved1051 */
+	0x00,  /* Reserved1067 */
 	0x01,  /* GLOVE_MTX_FAST_MOVE_WR_ENABLE */
 	0x02,  /* GLOVE_RX_LINE_FILTER_DEBOUNCE */
-	0x50,  /* GLOVE_RX_LINE_FILTER_THRESHOLD */
+	0x3C,  /* GLOVE_RX_LINE_FILTER_THRESHOLD */
 	0x05,  /* GLOVE_MTX_FAST_MOVE_WR_THRESHOLD */
 	0xF0, 0x00, 0x00, 0x00,  /* XY_FILTER_MASK */
 	0x04, 0x00, 0x00, 0x00,  /* XY_FILT_IIR_COEFF */
@@ -605,9 +609,9 @@ static const uint8_t cyttsp5_param_regs_kiwi_gis[] = {
 	0x00,  /* XY_FILT_TOUCH_SIZE_HYST */
 	0x00,  /* XY_FILT_TOUCH_ORIENTATION_IIR_COEFF */
 	0x00,  /* XY_FILT_TOUCH_ORIENTATION_HYST */
-	0x00, 0x00, 0x00,  /* Reserved1109 */
+	0x00, 0x00, 0x00,  /* Reserved1125 */
 	0x00,  /* SIZE_ORIENTATION_ENABLE */
-	0x00, 0x00, 0x00,  /* Reserved1113 */
+	0x00, 0x00, 0x00,  /* Reserved1129 */
 	0x32, 0x00,  /* EASYWAKE_IDLE_INTERVAL */
 	0x0A, 0x00,  /* EASYWAKE_ACTIVE_INTERVAL */
 	0xB8, 0x0B,  /* MAX_TOUCH_PERIOD */
@@ -618,7 +622,7 @@ static const uint8_t cyttsp5_param_regs_kiwi_gis[] = {
 	0x64, 0x00,  /* ACTIVE_AREA_W */
 	0x14,  /* MIN_X_VALID_SIZE */
 	0x06,  /* MIN_Y_VALID_SIZE */
-	0x00, 0x00,  /* Reserved1134 */
+	0x00, 0x00,  /* Reserved1150 */
 	0x2A,  /* CONFIG_SIZE */
 	0x12,  /* PAN_ACTIVE_DIST_X */
 	0x12,  /* PAN_ACTIVE_DIST_Y */
@@ -669,10 +673,10 @@ static const uint8_t cyttsp5_param_regs_kiwi_gis[] = {
 	0x0A,  /* DT_PAN_TO_ZOOM_DEBOUNCE */
 	0x14,  /* ROTATE_DEBOUNCE */
 	0x01,  /* COMPLETED_DEBOUNCE */
-	0x3C,  /* DOUBLE_CLICK_RADIUS */
-	0x46,  /* CLICK_RADIUS_X */
-	0x46,  /* CLICK_RADIUS_Y */
-	0x28,  /* Reserved1189 */
+	0xA0,  /* DOUBLE_CLICK_RADIUS */
+	0x64,  /* CLICK_RADIUS_X */
+	0x64,  /* CLICK_RADIUS_Y */
+	0x28,  /* Reserved1205 */
 	0x28, 0x00,  /* SETTLING_TIMEOUT */
 	0x38, 0x04,  /* RESOLUTION_X */
 	0x80, 0x07,  /* RESOLUTION_Y */
@@ -693,16 +697,18 @@ static const uint8_t cyttsp5_param_regs_kiwi_gis[] = {
 	0x49,  /* GROUP3_END */
 	0x90,  /* GROUP4_START */
 	0x9F,  /* GROUP4_END */
-	0x00, 0x00, 0x00,  /* Reserved1221 */
+	0x00, 0x00, 0x00,  /* Reserved1237 */
 	0x00,  /* SMART_COVER_ENABLE */
 	0x02,  /* SMART_COVER_SUPPORT_MAX_TOUCH_NUM */
-	0x32, 0x00,  /* SMART_COVER_WINDOW_COORDINATE_X_START */
-	0xC8, 0x00,  /* SMART_COVER_WINDOW_COORDINATE_X_END */
-	0x32, 0x00,  /* SMART_COVER_WINDOW_COORDINATE_Y_START */
-	0xC8, 0x00,  /* SMART_COVER_WINDOW_COORDINATE_Y_END */
-	0x28, 0x00,  /* SMART_COVER_THRSH_SELF */
-	0x3C, 0x00,  /* SMART_COVER_ON_THRSH_MUTUAL */
-	0x32, 0x00,  /* SMART_COVER_OFF_THRSH_MUTUAL */
+	0x06, 0x00,  /* SMART_COVER_WINDOW_COORDINATE_X_START */
+	0xFF, 0x03,  /* SMART_COVER_WINDOW_COORDINATE_X_END */
+	0x25, 0x00,  /* SMART_COVER_WINDOW_COORDINATE_Y_START */
+	0xB3, 0x02,  /* SMART_COVER_WINDOW_COORDINATE_Y_END */
+	0x00, 0x00,  /* SMART_COVER_THRSH_SELF */
+	0x96, 0x00,  /* SMART_COVER_ON_THRSH_MUTUAL */
+	0x78, 0x00,  /* SMART_COVER_OFF_THRSH_MUTUAL */
+	0x03,  /* SMART_COVER_MULTI_TOUCH_DEBOUNCE */
+	0x00, 0x00, 0x00,  /* Reserved1257 */
 	0xC8, 0x00,  /* TEMP_COMP_INTERVAL */
 	0x30, 0x75,  /* LOW_TEMP_THRESH */
 	0x64, 0x00,  /* SIG_DROPMIN_HEAT_IN_COLD */
@@ -718,10 +724,10 @@ static const uint8_t cyttsp5_param_regs_kiwi_gis[] = {
 	0x46, 0x00,  /* SIG_INCRMAX_COOL_GLOVE */
 	0x02,  /* TOUCH_COMP_RANGE_GLOVE */
 	0x80,  /* COMP_DROP_PERCENTAGE_GLOVE */
-	0x00, 0x00,  /* Reserved1266 */
+	0x00, 0x00,  /* Reserved1286 */
 	0x00,  /* EXT_SYNC */
 	0x01,  /* PWR_CFG */
-	0x06, 0x00,  /* CONFIG_VER */
+	0x0C, 0x00,  /* CONFIG_VER */
 	0x01,  /* SEND_REPORT_AFTER_ACTIVE_INTERVAL_CFG */
 	0x00,  /* PIP_REPORTING_DISABLE */
 	0x00, 0x00,  /* INTERRUPT_PIN_OVERRIDE */
@@ -732,11 +738,11 @@ static const uint8_t cyttsp5_param_regs_kiwi_gis[] = {
 	0x04,  /* PINS_NC_NC */
 	0x00,  /* OPTION_SLEEP_FOR_ACTIVE_LFT_LP */
 	0x00,  /* OPTION_SLEEP_FOR_DEEPSLEEP */
-	0x00,  /* Reserved1283 */
+	0x00,  /* Reserved1303 */
 	0x00,  /* SYNC_REPORT_ENABLE */
 	0x00,  /* SYNC_REPORT_BYPASS_TRIGGER_LEVEL */
-	0x00, 0x00,  /* Reserved1286 */
-	0x10, 0xED,  /* CONFIG_CRC */
+	0x00, 0x00,  /* Reserved1306 */
+	0x6B, 0x32,  /* CONFIG_CRC */
 };
 
 /* Touchscreen Parameters Field Sizes (Writable: 0:Readonly; 1:Writable) */
@@ -980,7 +986,9 @@ static const uint16_t cyttsp5_param_size_kiwi_gis[] = {
 	2, /* CA_INJTCH_MAGNITUDE */
 	2, /* CA_INJTCH_FINGER_THOLD */
 	4, /* CA_DEFAULT_REVERT_TIME */
-	4, /* CA_DIFF_ABS_DELTA_SUM_THRESHOLD */
+	4, /* CA_L1_DIFF_ABS_DELTA_SUM_THRESHOLD */
+	4, /* CA_L2_DIFF_ABS_DELTA_SUM_THRESHOLD */
+	4, /* CA_L3_DIFF_ABS_DELTA_SUM_THRESHOLD */
 	4, /* CA_STUCKTOUCH_REVERT_TIME */
 	2, /* DETECT_CHARGER_THRESHOLD */
 	2, /* NM_INJ_TCH_THRESHOLD */
@@ -991,7 +999,7 @@ static const uint16_t cyttsp5_param_size_kiwi_gis[] = {
 	2, /* CA_DYN_CAL_SAFE_RAW_RANGE */
 	2, /* CA_DYN_FINGER_THRESH */
 	2, /* CA_MIN_SELF_ALLOWED */
-	2, /* Reserved714 */
+	2, /* Reserved722 */
 	1, /* ACT_LFT_EN */
 	1, /* INNER_EDGE_GAIN */
 	1, /* OUTER_EDGE_GAIN */
@@ -1000,11 +1008,11 @@ static const uint16_t cyttsp5_param_size_kiwi_gis[] = {
 	2, /* LP_INTRVL0 */
 	2, /* TCH_TMOUT0 */
 	2, /* FINGER_THRESH_SELF */
+	2, /* SINGLE_FINGER_THRESH_SELF */
 	2, /* GLOVE_THRSH_SELF */
 	1, /* LOW_POWER_ENABLE */
 	1, /* WATER_ON_EDGE_RX_SELF_DROP_DELTA */
 	2, /* WATER_ON_EDGE_RX_SELF_DROP_THRESHOLD */
-	2, /* Reserved734 */
 	1, /* ACT_DIST0 */
 	1, /* ACT_DIST2 */
 	1, /* ACT_DIST_FAST */
@@ -1018,7 +1026,7 @@ static const uint16_t cyttsp5_param_size_kiwi_gis[] = {
 	1, /* FIRST_TOUCH_SUPPRESSION */
 	1, /* FIRST_TOUCH_EDGE_AREA */
 	1, /* OBJ_WITHHOLD_CFG */
-	3, /* Reserved749 */
+	3, /* Reserved757 */
 	4, /* FINGER_ID_MAX_FINGER_VELOCITY2 */
 	4, /* FINGER_ID_MAX_FINGER_ACCELERATION2 */
 	2, /* GRIP_XEDG_A */
@@ -1032,14 +1040,16 @@ static const uint16_t cyttsp5_param_size_kiwi_gis[] = {
 	1, /* GRIP_FIRST_EXC */
 	1, /* GRIP_EXC_EDGE_ORIGIN */
 	1, /* GRIP_ENABLE */
-	1, /* FINGER_ID_MAX_VEL_ACC_GLOVE_SCALE */
+	1, /* Reserved787 */
+	4, /* GLOVE_ID_MAX_GLOVE_VELOCITY2 */
+	4, /* GLOVE_ID_MAX_GLOVE_ACCELERATION2 */
 	2, /* GLOVE_FIRST_TOUCH_ACT_DISTANCE */
 	1, /* LIFTOFF_DEBOUNCE */
 	1, /* LIFTOFF_DEBOUNCE_PROXIMITY */
 	1, /* LIFTOFF_DEBOUNCE_STYLUS */
 	1, /* LIFTOFF_DEBOUNCE_HOVER */
 	1, /* GLOVE_LIFTOFF_DEBOUNCE */
-	1, /* Reserved787 */
+	1, /* Reserved803 */
 	2, /* TOUCHMODE_GLOVE_SWITCH_DEBOUNCE */
 	2, /* TOUCHMODE_FINGER_SWITCH_DEBOUNCE */
 	2, /* TOUCHMODE_GLOVE_FINGER_SWITCH_DEBOUNCE */
@@ -1064,7 +1074,7 @@ static const uint16_t cyttsp5_param_size_kiwi_gis[] = {
 	1, /* TCH_SUM_FILTER_METHOD */
 	1, /* TCH_SUM_UPDATE_IIR_COEF */
 	1, /* TCH_SUM_THRESH_COEF */
-	3, /* Reserved821 */
+	3, /* Reserved837 */
 	1, /* BR2_ALWAYS_ON_FLAG */
 	1, /* EDGE_DEBOUNCE_COUNT */
 	2, /* CALC_THRESHOLD */
@@ -1090,7 +1100,7 @@ static const uint16_t cyttsp5_param_size_kiwi_gis[] = {
 	1, /* GRADIENT_THRESHOLD */
 	1, /* CORE_TO_CORNER_ZSUM_RATIO */
 	1, /* FIXED_FINGER_SIZE */
-	2, /* Reserved878 */
+	2, /* Reserved894 */
 	4, /* MIN_FAT_FINGER_Z9 */
 	4, /* MAX_MULTI_FINGER_Z9 */
 	4, /* MIN_FAT_FINGER_SIG_SUM_ON_EDGE */
@@ -1122,7 +1132,7 @@ static const uint16_t cyttsp5_param_size_kiwi_gis[] = {
 	1, /* SENSOR_NUM_THRSH */
 	1, /* SENSOR_NUM_THRSH_FINGER */
 	1, /* DISCARD_SCAN */
-	2, /* Reserved934 */
+	2, /* Reserved950 */
 	2, /* FINGER_THRESH_MUTUAL_ON */
 	2, /* FINGER_THRESH_MUTUAL_OFF */
 	2, /* Z_SCALING */
@@ -1132,7 +1142,7 @@ static const uint16_t cyttsp5_param_size_kiwi_gis[] = {
 	1, /* CA_MULTI_TOUCH_DEBOUNCE */
 	1, /* CA_Z9_FILTER_SCALE */
 	1, /* MTX_FAST_MOVE_WR_ENABLE */
-	1, /* Reserved949 */
+	1, /* Reserved965 */
 	2, /* MTX_FAST_MOVE_WR_THRESHOLD */
 	2, /* MAX_FAT_FINGER_SIZE_HYST */
 	2, /* MAX_FAT_FINGER_SIZE_ON */
@@ -1146,11 +1156,11 @@ static const uint16_t cyttsp5_param_size_kiwi_gis[] = {
 	1, /* RX_LINE_FILTER */
 	1, /* RX_LINE_FILTER_DEBOUNCE */
 	1, /* RX_LINE_FILTER_THRESHOLD */
-	1, /* Reserved967 */
+	1, /* Reserved983 */
 	1, /* WF_Z8_THRESH_MULT */
 	1, /* WF_Z24_THRESH_MULT */
 	1, /* WF_REJECT_RANGE */
-	1, /* Reserved971 */
+	1, /* Reserved987 */
 	1, /* BTN_LS_ON_THRSH_MUT_0 */
 	1, /* BTN_LS_ON_THRSH_MUT_1 */
 	1, /* BTN_LS_ON_THRSH_MUT_2 */
@@ -1168,7 +1178,7 @@ static const uint16_t cyttsp5_param_size_kiwi_gis[] = {
 	1, /* BTN_LS_OFF_THRSH_SELF_2 */
 	1, /* BTN_LS_OFF_THRSH_SELF_3 */
 	2, /* BTN_LS_TOUCHDOWN_DEBOUNCE */
-	2, /* Reserved990 */
+	2, /* Reserved1006 */
 	1, /* BTN_HS_ON_THRSH_MUT_0 */
 	1, /* BTN_HS_ON_THRSH_MUT_1 */
 	1, /* BTN_HS_ON_THRSH_MUT_2 */
@@ -1186,7 +1196,7 @@ static const uint16_t cyttsp5_param_size_kiwi_gis[] = {
 	1, /* BTN_HS_OFF_THRSH_SELF_2 */
 	1, /* BTN_HS_OFF_THRSH_SELF_3 */
 	2, /* BTN_HS_TOUCHDOWN_DEBOUNCE */
-	2, /* Reserved1010 */
+	2, /* Reserved1026 */
 	2, /* GLOVE_BTN_FORBID_DEBOUNCE */
 	2, /* GLOVE_BTN_TO_HIGHSEN_MODE_SWITCH_THRSH_MUT */
 	2, /* GLOVE_BTN_TO_HIGHSEN_MODE_SWITCH_THRSH_SELF */
@@ -1194,8 +1204,8 @@ static const uint16_t cyttsp5_param_size_kiwi_gis[] = {
 	2, /* GLOVE_BTN_TO_LOWSEN_MODE_SWITCH_THRSH_SELF */
 	2, /* GLOVE_BTN_MODE_SWITCH_DEBOUNCE */
 	1, /* BTN_PROCESS_IF_TOUCH_DETECTED */
-	1, /* Reserved1025 */
-	2, /* Reserved1026 */
+	1, /* Reserved1041 */
+	2, /* Reserved1042 */
 	2, /* TOUCHMODE_GLOVE_MAX_PEAK */
 	2, /* GLOVE_ON_THRSH_MUTUAL */
 	2, /* GLOVE_OFF_THRSH_MUTUAL */
@@ -1213,7 +1223,7 @@ static const uint16_t cyttsp5_param_size_kiwi_gis[] = {
 	1, /* GLOVE_SIGNAL_THRESHOLD_MULTIPLIER */
 	1, /* GLOVE_INNER_EDGE_GAIN */
 	1, /* GLOVE_OUTER_EDGE_GAIN */
-	1, /* Reserved1051 */
+	1, /* Reserved1067 */
 	1, /* GLOVE_MTX_FAST_MOVE_WR_ENABLE */
 	1, /* GLOVE_RX_LINE_FILTER_DEBOUNCE */
 	1, /* GLOVE_RX_LINE_FILTER_THRESHOLD */
@@ -1244,9 +1254,9 @@ static const uint16_t cyttsp5_param_size_kiwi_gis[] = {
 	1, /* XY_FILT_TOUCH_SIZE_HYST */
 	1, /* XY_FILT_TOUCH_ORIENTATION_IIR_COEFF */
 	1, /* XY_FILT_TOUCH_ORIENTATION_HYST */
-	3, /* Reserved1109 */
+	3, /* Reserved1125 */
 	1, /* SIZE_ORIENTATION_ENABLE */
-	3, /* Reserved1113 */
+	3, /* Reserved1129 */
 	2, /* EASYWAKE_IDLE_INTERVAL */
 	2, /* EASYWAKE_ACTIVE_INTERVAL */
 	2, /* MAX_TOUCH_PERIOD */
@@ -1257,7 +1267,7 @@ static const uint16_t cyttsp5_param_size_kiwi_gis[] = {
 	2, /* ACTIVE_AREA_W */
 	1, /* MIN_X_VALID_SIZE */
 	1, /* MIN_Y_VALID_SIZE */
-	2, /* Reserved1134 */
+	2, /* Reserved1150 */
 	1, /* CONFIG_SIZE */
 	1, /* PAN_ACTIVE_DIST_X */
 	1, /* PAN_ACTIVE_DIST_Y */
@@ -1311,7 +1321,7 @@ static const uint16_t cyttsp5_param_size_kiwi_gis[] = {
 	1, /* DOUBLE_CLICK_RADIUS */
 	1, /* CLICK_RADIUS_X */
 	1, /* CLICK_RADIUS_Y */
-	1, /* Reserved1189 */
+	1, /* Reserved1205 */
 	2, /* SETTLING_TIMEOUT */
 	2, /* RESOLUTION_X */
 	2, /* RESOLUTION_Y */
@@ -1332,7 +1342,7 @@ static const uint16_t cyttsp5_param_size_kiwi_gis[] = {
 	1, /* GROUP3_END */
 	1, /* GROUP4_START */
 	1, /* GROUP4_END */
-	3, /* Reserved1221 */
+	3, /* Reserved1237 */
 	1, /* SMART_COVER_ENABLE */
 	1, /* SMART_COVER_SUPPORT_MAX_TOUCH_NUM */
 	2, /* SMART_COVER_WINDOW_COORDINATE_X_START */
@@ -1342,6 +1352,8 @@ static const uint16_t cyttsp5_param_size_kiwi_gis[] = {
 	2, /* SMART_COVER_THRSH_SELF */
 	2, /* SMART_COVER_ON_THRSH_MUTUAL */
 	2, /* SMART_COVER_OFF_THRSH_MUTUAL */
+	1, /* SMART_COVER_MULTI_TOUCH_DEBOUNCE */
+	3, /* Reserved1257 */
 	2, /* TEMP_COMP_INTERVAL */
 	2, /* LOW_TEMP_THRESH */
 	2, /* SIG_DROPMIN_HEAT_IN_COLD */
@@ -1357,7 +1369,7 @@ static const uint16_t cyttsp5_param_size_kiwi_gis[] = {
 	2, /* SIG_INCRMAX_COOL_GLOVE */
 	1, /* TOUCH_COMP_RANGE_GLOVE */
 	1, /* COMP_DROP_PERCENTAGE_GLOVE */
-	2, /* Reserved1266 */
+	2, /* Reserved1286 */
 	1, /* EXT_SYNC */
 	1, /* PWR_CFG */
 	2, /* CONFIG_VER */
@@ -1371,10 +1383,10 @@ static const uint16_t cyttsp5_param_size_kiwi_gis[] = {
 	1, /* PINS_NC_NC */
 	1, /* OPTION_SLEEP_FOR_ACTIVE_LFT_LP */
 	1, /* OPTION_SLEEP_FOR_DEEPSLEEP */
-	1, /* Reserved1283 */
+	1, /* Reserved1303 */
 	1, /* SYNC_REPORT_ENABLE */
 	1, /* SYNC_REPORT_BYPASS_TRIGGER_LEVEL */
-	2, /* Reserved1286 */
+	2, /* Reserved1306 */
 	2, /* CONFIG_CRC */
 };
 #if 0

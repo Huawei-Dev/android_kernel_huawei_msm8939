@@ -313,6 +313,7 @@ static int32_t msm_actuator_move_focus(
 		return -EFAULT;
 	}
 
+
 	CDBG("called, dir %d, num_steps %d\n", dir, num_steps);
 
 	if (dest_step_pos == a_ctrl->curr_step_pos)
@@ -396,6 +397,7 @@ static int32_t msm_actuator_move_focus(
 #endif
 	return rc;
 }
+
 
 static int32_t msm_actuator_park_lens(struct msm_actuator_ctrl_t *a_ctrl)
 {

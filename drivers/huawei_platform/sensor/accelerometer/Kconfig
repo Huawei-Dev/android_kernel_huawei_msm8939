@@ -1,4 +1,3 @@
-
 config HUAWEI_ACCEL_SENSORS_KIONIX
         tristate "ROHM_KX023 3-axis digital acceleromater"
         depends on I2C

@@ -1329,7 +1329,7 @@ static int sensor_parse_dt(struct device *dev,
 	}
 	tp_moudle_count = tmp;
 
-	APDS9251_INFO("%s:%d read lux cal parameter count from dtsi  is %d\n", __FUNCTION__, __LINE__, tp_moudle_count);
+	APDS9251_FLOW("%s:%d read lux cal parameter count from dtsi  is %d\n", __FUNCTION__, __LINE__, tp_moudle_count);
 
 	if(tp_moudle_count > MODULE_MANUFACTURE_NUMBER){
 		APDS9251_ERR("%s,line %d:tp_moudle_count from dtsi too large: %d\n",__func__,__LINE__, tp_moudle_count);
@@ -1342,7 +1342,7 @@ static int sensor_parse_dt(struct device *dev,
 			APDS9251_ERR("%s:%d apds9251,junda_data0 length invaild or dts number is larger than:%d\n",__FUNCTION__,__LINE__,array_len);
 			return array_len;
 		}
-		APDS9251_INFO("%s:%d read lux cal parameter count from dtsi  is %d\n", __FUNCTION__, __LINE__, array_len);
+		APDS9251_FLOW("%s:%d read lux cal parameter count from dtsi  is %d\n", __FUNCTION__, __LINE__, array_len);
 
 		ptr = (long *)&apds9251_tp_module_parameter[i];
 
@@ -1353,7 +1353,7 @@ static int sensor_parse_dt(struct device *dev,
 				return retval;
 			}
 			ptr[index]  = simple_strtol(raw_data0_dts, NULL, 10);
-			APDS9251_INFO("%s:%d lux cal parameter from dtsi  is %ld\n", __FUNCTION__, __LINE__, ptr[index]);
+			APDS9251_FLOW("%s:%d lux cal parameter from dtsi  is %ld\n", __FUNCTION__, __LINE__, ptr[index]);
 		}
 	}
 

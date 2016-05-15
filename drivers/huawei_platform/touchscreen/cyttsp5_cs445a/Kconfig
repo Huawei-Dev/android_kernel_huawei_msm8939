@@ -1,7 +1,7 @@
-
 #
 # Touchscreen driver configuration
 #
+
 
 config TOUCHSCREEN_CYPRESS_CYTTSP5
 	tristate "Cypress TrueTouch Gen5 Touchscreen Driver"

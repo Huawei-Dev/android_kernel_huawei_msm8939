@@ -124,6 +124,7 @@ static void cyttsp5_mt_process_touch(struct cyttsp5_mt_data *md,
 	int tmp;
 	bool flipped;
 
+
 	/* Orientation is signed */
 	touch->abs[CY_TCH_OR] = (int8_t)touch->abs[CY_TCH_OR];
 
@@ -302,12 +303,12 @@ static void cyttsp5_get_mt_touches(struct cyttsp5_mt_data *md,
 	struct cyttsp5_sysinfo *si = md->si;
 	int sig;
 	int i, j, t = 0;
-	int max_tch = si->sensing_conf_data.max_tch;
-	DECLARE_BITMAP(ids, max_tch);
+
+	DECLARE_BITMAP(ids, si->tch_abs[CY_TCH_T].max);
 	int mt_sync_count = 0;
 	u8 *tch_addr;
 
-	bitmap_zero(ids, max_tch);
+	bitmap_zero(ids, si->tch_abs[CY_TCH_T].max);
 	memset(tch->abs, 0, sizeof(tch->abs));
 
 	for (i = 0; i < num_cur_tch; i++) {
@@ -398,8 +399,8 @@ cyttsp5_get_mt_touches_pr_tch:
 	}
 
 	if (md->mt_function.final_sync)
-		md->mt_function.final_sync(md->input, max_tch,
-				mt_sync_count, ids);
+		md->mt_function.final_sync(md->input,
+				si->tch_abs[CY_TCH_T].max, mt_sync_count, ids);
 
 	md->num_prv_rec = num_cur_tch;
 }
@@ -461,6 +462,14 @@ static int cyttsp5_mt_attention(struct device *dev)
 	struct cyttsp5_mt_data *md = &cd->md;
 	int rc;
 
+	if (!md->si) {
+		md->si = _cyttsp5_request_sysinfo(dev);
+		if (!md->si) {
+			tp_log_err("%s:md->si request again fail\n",__func__);
+			return -EINVAL;
+		}
+	}
+
 	if (md->si->xy_mode[2] !=  md->si->desc.tch_report_id)
 		return 0;
 
@@ -490,6 +499,16 @@ static int cyttsp5_startup_attention(struct device *dev)
 	struct cyttsp5_core_data *cd = dev_get_drvdata(dev);
 	struct cyttsp5_mt_data *md = &cd->md;
 
+	tp_log_info("%s:in \n",__func__);
+	if (!md->si) {
+		tp_log_info("%s:md->si is null, request again\n",__func__);
+		md->si = _cyttsp5_request_sysinfo(dev);
+		if (!md->si) {
+			tp_log_err("%s:md->si request again fail\n",__func__);
+			return -EINVAL;
+		}
+	}
+
 	mutex_lock(&md->mt_lock);
 	cyttsp5_mt_lift_all(md);
 	mutex_unlock(&md->mt_lock);
@@ -502,6 +521,14 @@ static int cyttsp5_suspend_attention(struct device *dev)
 	struct cyttsp5_core_data *cd = dev_get_drvdata(dev);
 	struct cyttsp5_mt_data *md = &cd->md;
 
+	if (!md->si) {
+		tp_log_info("%s:md->si is null, request again\n",__func__);
+		md->si = _cyttsp5_request_sysinfo(dev);
+		if (!md->si) {
+			tp_log_err("%s:md->si request again fail\n",__func__);
+			return -EINVAL;
+		}
+	}
 	mutex_lock(&md->mt_lock);
 	/* release all touch */
 	cyttsp5_mt_lift_all(md);
@@ -596,7 +623,7 @@ static int cyttsp5_setup_input_device(struct device *dev)
 	struct cyttsp5_core_data *cd = dev_get_drvdata(dev);
 	struct cyttsp5_mt_data *md = &cd->md;
 	int signal = CY_IGNORE_VALUE;
-	int max_x, max_y, max_p, min, max;
+	int max_x, max_y, max_p, min, max, slots_max;
 	int max_x_tmp, max_y_tmp;
 	int i;
 	int rc;
@@ -614,13 +641,32 @@ static int cyttsp5_setup_input_device(struct device *dev)
 		tp_log_err("%s:init easy wakeup key value fail, rc = %d\n", __func__, rc);
 	}
 
+	if ( md->si ){
+		max_p = md->si->sensing_conf_data.max_z;
+		slots_max = md->si->tch_abs[CY_TCH_T].max;
+	} else {
+		/* only input_register_early config true will run this code*/
+		max_p = md->pdata->p_max;
+		slots_max = md->pdata->slots_max;
+		tp_log_info("%s:input_register_early config true,use p_max=%d slots_max=%d in DTS\n",
+						__func__,max_p,slots_max);
+	}
+
 	/* If virtualkeys enabled, don't use all screen */
 	if (md->pdata->flags & CY_MT_FLAG_VKEYS) {
 		max_x_tmp = md->pdata->vkeys_x;
 		max_y_tmp = md->pdata->vkeys_y;
 	} else {
-		max_x_tmp = md->si->sensing_conf_data.res_x;
-		max_y_tmp = md->si->sensing_conf_data.res_y;
+		if ( md->si ) {
+			max_x_tmp = md->si->sensing_conf_data.res_x;
+			max_y_tmp = md->si->sensing_conf_data.res_y;
+		} else {
+			/* only input_register_early config true will run this code*/
+			max_x_tmp = md->pdata->x_max;
+			max_y_tmp = md->pdata->y_max;
+			tp_log_info("%s:input_register_early config true,use x_max=%d y_max=%d in DTS\n",
+							__func__,max_x_tmp,max_y_tmp);
+		}
 	}
 
 	/* get maximum values from the sysinfo data */
@@ -631,7 +677,6 @@ static int cyttsp5_setup_input_device(struct device *dev)
 		max_x = max_x_tmp - 1;
 		max_y = max_y_tmp - 1;
 	}
-	max_p = md->si->sensing_conf_data.max_z;
 
 	/* set event signal capabilities */
 	for (i = 0; i < NUM_SIGNALS(md->pdata->frmwrk); i++) {
@@ -665,8 +710,7 @@ static int cyttsp5_setup_input_device(struct device *dev)
 	md->t_min = MT_PARAM_MIN(md, CY_ABS_ID_OST);
 	md->t_max = MT_PARAM_MAX(md, CY_ABS_ID_OST);
 
-	rc = md->mt_function.input_register_device(md->input,
-			md->si->tch_abs[CY_TCH_T].max);
+	rc = md->mt_function.input_register_device(md->input,slots_max);
 	if (rc < 0)
 		tp_log_err( "%s: Error, failed register input device r=%d\n",
 			__func__, rc);
@@ -747,15 +791,25 @@ int cyttsp5_mt_probe(struct device *dev)
 	if (md->si) {
 		rc = cyttsp5_setup_input_device(dev);
 		if (rc) {
-			tp_log_err("%s %d:cyttsp5_setup_input_device fail, rc = %d\n", 
+			tp_log_err("%s %d:cyttsp5_setup_input_device fail, rc = %d\n",
 						__func__, __LINE__, rc);
 			goto error_init_input;
 		}
 	} else {
-		tp_log_err( "%s: Fail get sysinfo pointer from core p=%p\n",
-			__func__, md->si);
-		_cyttsp5_subscribe_attention(dev, CY_ATTEN_STARTUP,
-			CY_MODULE_MT, cyttsp5_setup_input_attention, 0);
+		if (cd->pdata->core_pdata->input_register_early) {
+			tp_log_info("%s:input_register_early config true,will register input devices nowait FW upgrade\n",__func__);
+			rc = cyttsp5_setup_input_device(dev);
+			if (rc) {
+				tp_log_err("%s %d:cyttsp5_setup_input_device fail, rc = %d\n",
+							__func__, __LINE__, rc);
+				goto error_init_input;
+			}
+		} else {
+			tp_log_err( "%s: Fail get sysinfo pointer from core p=%p\n",
+				__func__, md->si);
+			_cyttsp5_subscribe_attention(dev, CY_ATTEN_STARTUP,
+				CY_MODULE_MT, cyttsp5_setup_input_attention, 0);
+		}
 	}
 
 	tp_log_info("%s: mt probe successful.\n", __func__);

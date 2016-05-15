@@ -49,6 +49,7 @@
 #include <linux/firmware.h>
 #include <linux/pm_runtime.h>
 
+
 #ifdef LOG_TAG
 #undef LOG_TAG
 #define LOG_TAG "mini_isp"
@@ -1058,6 +1059,7 @@ out:
 }
 EXPORT_SYMBOL(misp_exec_bidir_cmd);
 
+
 int misp_exec_write_block(u16 cmd, u8 *in, u32 in_len, u8 *out, u32 out_len)
 {
     struct misp_data *devdata = get_misp_data();
@@ -1132,6 +1134,7 @@ out:
 }
 EXPORT_SYMBOL(misp_exec_write_block);
 
+
 int misp_exec_inout_cmd(u16 cmd, u8 *in, u32 in_len,
 										u8 *out, u32 out_len)
 {
@@ -1193,6 +1196,7 @@ int misp_flush_log(void)
 	return 0;
 }
 EXPORT_SYMBOL(misp_flush_log);
+
 
 int misp_reset_vcm(void)
 {
@@ -1274,6 +1278,7 @@ int misp_set_reset_gpio(int value)
 	}
 
 	plat_data = drv_data->plat_data;
+
 
 	if(gpio_direction_output(plat_data->reset_gpio,value ))
         {
@@ -1381,6 +1386,7 @@ int misp_set_ois_initstatus(int status)
 }
 EXPORT_SYMBOL(misp_get_ois_initstatus);
 EXPORT_SYMBOL(misp_set_ois_initstatus);
+
 
 /*
  * mini isp local functions, no need to export to other driver modules.
@@ -1990,6 +1996,7 @@ static int misp_load_basic_code(struct msm_sensor_ctrl_t *s_ctrl, struct misp_da
 	vfs_read(fp, (char *)p_chk_sum,		4, &pos);
 	vfs_read(fp, (char *)p_block_size,	4, &pos);
 
+
 	pr_err("%s,start sending basic code... size=0x%08x,p_block_size=%d\n", __func__,*p_total_size,*p_block_size);
 	pr_err("basic code info:addr=0x%08x chksum=0x%08x\n", *p_addr, *p_chk_sum);
 	*p_block_size = SPI_BLOCK_BUF_SIZE;
@@ -2265,6 +2272,7 @@ FLIP_CLOSE:
 	set_fs(oldfs);
 	return ;
 }
+
 
 static void paser_reg_table(char *buf, u32 **out_ptr, u32 *out_count)
 {
@@ -2736,6 +2744,8 @@ static ssize_t misp_test_pipe_store(struct device *dev, struct device_attribute 
 		return count;
 	}
 
+
+
 	/* input:test_pipe=0 test_pipe=1 test_pipe=2 */
 	if (0 == strncmp("test_pipe", pos, strlen("test_pipe"))) {
 		while (*pos) {
@@ -2827,6 +2837,7 @@ err:
 	return count;
 }
 
+
 static ssize_t misp_test_pipe_show(struct device *dev, struct device_attribute *attr, char *buf)
 {
 	char *offset = buf;
@@ -2844,6 +2855,7 @@ static ssize_t misp_test_pipe_show(struct device *dev, struct device_attribute *
 	pr_err("%s:%s",  __func__, buf);
 	memset(test_result, 0, sizeof(test_result));
 
+
 	ret = snprintf(offset, PAGE_SIZE, "\n");
 	offset += ret;
 
@@ -2859,6 +2871,7 @@ static const struct of_device_id msm_miniisp_dt_match[] = {
 	{}
 };
 MODULE_DEVICE_TABLE(of, msm_miniisp_dt_match);
+
 
 static int  msm_dt_to_pdata_populate(struct  device_node *of_node,
 					struct msm_dt_to_pdata_map  *itr)
@@ -2893,6 +2906,7 @@ static int  msm_dt_to_pdata_populate(struct  device_node *of_node,
 	}
 	return err;
 }
+
 
 /*get isp config from dts include spi config*/
 static int32_t mini_isp_driver_get_dt_data(struct device_node *of_node, struct misp_data* mispdata  )	
@@ -3042,6 +3056,7 @@ err_alloc_buf:
 	misp_drv_data = NULL;
 	return ret;
 }
+
 
 static struct spi_driver mini_isp_drv = {
 	.driver = {

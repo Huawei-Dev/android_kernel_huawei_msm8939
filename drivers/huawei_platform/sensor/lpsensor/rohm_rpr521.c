@@ -41,7 +41,7 @@
 #include <linux/hw_dev_dec.h>
 #endif
 #ifdef CONFIG_HUAWEI_DSM
-#include 	<linux/dsm_pub.h>
+#include 	<dsm/dsm_pub.h>
 #endif
 
 #include <misc/app_info.h>
@@ -284,6 +284,7 @@ static struct dsm_dev dsm_lps_rpr = {
 	.buff_size 	= DSM_SENSOR_BUF_MAX,			// buffer size
 };
 
+
 static struct device_attribute rpr_show_regs =
 		__ATTR(dump_reg, 0440, rpr521_print_reg_buf, rpr521_write_reg);
 
@@ -362,6 +363,7 @@ static void rpr_dsm_no_irq_check(struct rpr521_data *data)
 {
 	struct ls_test_excep *excep = &data->ls_test_exception;
 
+
 	/* add this code segment to enable ps func
 	*	irq gpio status
 	*/
@@ -370,6 +372,7 @@ static void rpr_dsm_no_irq_check(struct rpr521_data *data)
 	/*delete it, no use check_type*/
 	schedule_delayed_work(&data->dsm_irq_work, msecs_to_jiffies(120));
 }
+
 
 static void rpr_dsm_change_ps_enable_status(struct rpr521_data *data)
 {
@@ -380,6 +383,7 @@ static void rpr_dsm_change_ps_enable_status(struct rpr521_data *data)
 		data->ls_test_exception.ps_report_flag = 1;
 	}
 }
+
 
 /*
 * if i2c transfer error, we check sda/scl value and regulator's value
@@ -500,17 +504,20 @@ static int rpr_dsm_report_wrong_irq(struct rpr521_data *data)
 	int irq_gpio = data->platform_data->irq_gpio;
 	ssize_t size;
 
+
 	/*
 	*	read  regs and irq gpio
 	*/
 	rpr_dsm_read_regs(data);
 	excep->irq_val = gpio_get_value(irq_gpio);
 
+
 	size = dsm_client_record(rpr521_lps_dclient,"irq_pin = %d\n regs:%s \n",
 		excep->irq_val, excep->reg_buf);
 
 	RPR521_ERR("dsm error-> irq_pin = %d\n regs:%s\n",
 				excep->irq_val, excep->reg_buf);
+
 
 	return 0;
 
@@ -644,6 +651,8 @@ static int rpr_dsm_report_err(int errno,struct rpr521_data *data)
 }
 
 #endif
+
+
 
 /*we use the unified the function for i2c write and read operation*/
 static int rpr521_i2c_write(struct i2c_client*client, u8 reg, u16 value,bool flag)
@@ -819,6 +828,8 @@ static int rpr521_regs_debug_print(struct rpr521_data *data,int enable)
 
 	return 0;
 }
+
+
 
 static int rpr521_set_enable(struct i2c_client *client, int enable)
 {
@@ -1083,6 +1094,7 @@ exit:
 	}
 }
 
+
 /******************************************************************************
  * NAME       : long_long_divider
  * FUNCTION   : calc divider of unsigned long long int or unsgined long
@@ -1123,6 +1135,7 @@ static int long_long_divider(long long data, unsigned long base_divier, unsigned
 
     return (0);
 }
+
 
 /******************************************************************************
  * NAME       : calc_rohm_als_data
@@ -1279,6 +1292,7 @@ static int calc_rohm_als_data(unsigned short data0, unsigned short data1, unsign
 #undef MAXSET_CASE
 }
 
+
 /* delete rpr521_reschedule_work, we use queue_work to replase queue_delayed_work, because flush_delayed_work
    may cause system stop work */
 /* ALS polling routine */
@@ -1420,6 +1434,7 @@ static void rpr521_work_handler(struct work_struct *work)
 		/* only PS is interrupted */
 		RPR521_FLOW("%s,line %d:only PLS is detected.\n",__func__,__LINE__);
 		rpr521_ps_report_event(client, status);
+
 
 	} else{
 		RPR521_ERR("%s,line %d:wrong interrupts,RPR521_STATUS_REG is 0X%x\n",__func__,__LINE__,status);
@@ -1850,6 +1865,7 @@ static ssize_t rpr521_show_pdata(struct device *dev,
 }
 
 static DEVICE_ATTR(pdata, S_IRUGO, rpr521_show_pdata, NULL);
+
 
 /*
 * set the register's value from userspace
@@ -2740,6 +2756,7 @@ static int sensor_parse_dt(struct device *dev,
 	}
 	return 0;
 }
+
 
 static void rpr521_powerkey_screen_handler(struct work_struct *work)
 {

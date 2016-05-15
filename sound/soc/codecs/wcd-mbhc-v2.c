@@ -85,6 +85,7 @@ static u16 mic_or_hphr_inserted = 0;    //if mic or HPHR detected when correct p
 static unsigned long timeout_jiffies = 0;
 static bool ispress = false;
 #endif
+static bool enable_ignore_btn_press = false;
 module_param(det_extn_cable_en, int,
 		S_IRUGO | S_IWUSR | S_IWGRP);
 MODULE_PARM_DESC(det_extn_cable_en, "enable/disable extn cable detect");
@@ -1103,6 +1104,13 @@ static void wcd_correct_swch_plug(struct work_struct *work)
 		}
 
 		ad_logn("%s: mic_inserted: %d times,hphr_inserted: %d times,hphl_inserted: %d times,\n", __func__,mic_inserted,hphr_inserted, hphl_inserted);
+		snd_soc_write(codec, MSM8X16_WCD_A_ANALOG_MICB_2_EN,reg1);
+		snd_soc_write(codec, MSM8X16_WCD_A_ANALOG_MICB_1_CTL,reg2);
+		snd_soc_write(codec, MSM8X16_WCD_A_ANALOG_MBHC_FSM_CTL,reg3);
+		snd_soc_write(codec, MSM8X16_WCD_A_ANALOG_MBHC_DET_CTL_1,reg4);
+		snd_soc_write(codec, MSM8X16_WCD_A_ANALOG_MBHC_DET_CTL_2,reg5);
+		snd_soc_write(codec, MSM8X16_WCD_A_ANALOG_RX_HPH_CNP_EN,reg6);
+
 		if((mic_inserted <= 3)&&(hphr_inserted <= 3))
 		{
 			if(hphl_inserted >= 17)
@@ -1122,13 +1130,6 @@ static void wcd_correct_swch_plug(struct work_struct *work)
 			plug_type = MBHC_PLUG_TYPE_HEADSET;
 			wcd_mbhc_find_plug_and_report(mbhc, plug_type);
 		}
-
-		snd_soc_write(codec, MSM8X16_WCD_A_ANALOG_MICB_2_EN,reg1);
-		snd_soc_write (codec, MSM8X16_WCD_A_ANALOG_MICB_1_CTL,reg2);
-		snd_soc_write (codec, MSM8X16_WCD_A_ANALOG_MBHC_FSM_CTL,reg3);
-		snd_soc_write (codec, MSM8X16_WCD_A_ANALOG_MBHC_DET_CTL_1,reg4);
-		snd_soc_write (codec, MSM8X16_WCD_A_ANALOG_MBHC_DET_CTL_2,reg5);
-		snd_soc_write (codec, MSM8X16_WCD_A_ANALOG_RX_HPH_CNP_EN,reg6);
 	}
 
 	/* Enable micbias for detection in correct work*/
@@ -1343,6 +1344,11 @@ exit:
 	micbias2 = snd_soc_read(codec, MSM8X16_WCD_A_ANALOG_MICB_2_EN);
 	wcd_configure_cap(mbhc, (micbias2 & 0x80));
 	wcd9xxx_spmi_unlock_sleep();
+
+	if(enable_ignore_btn_press) {
+		mbhc->ignore_btn_press = false;
+		ad_logn("%s: ignore_btn_press = false, unignore btn press\n", __func__);
+	}
 	ad_logn("%s: leave\n", __func__);
 }
 
@@ -1442,6 +1448,12 @@ exit:
 			plug_type = MBHC_PLUG_TYPE_HEADSET;
 	}
 #endif
+
+	if(enable_ignore_btn_press) {
+		mbhc->ignore_btn_press = true;
+		ad_logn("%s: ignore_btn_press = true, ignore btn press\n", __func__);
+	}
+
 	if (plug_type == MBHC_PLUG_TYPE_HEADSET ||
 			plug_type == MBHC_PLUG_TYPE_HEADPHONE) {
 		wcd_mbhc_find_plug_and_report(mbhc, plug_type);
@@ -1972,6 +1984,11 @@ irqreturn_t wcd_mbhc_btn_press_handler(int irq, void *data)
 			 __func__);
 		goto done;
 	}
+	if (mbhc->ignore_btn_press) {
+		ad_logn("%s: ignore_btn_press = true, now ignore button press\n",
+			 __func__);
+		goto done;
+	}
 	if (mbhc->current_plug != MBHC_PLUG_TYPE_HEADSET) {
 		if ((mbhc->current_plug == MBHC_PLUG_TYPE_HIGH_HPH) && (!det_extn_cable_en)) {
 			ad_logd("%s: Ignore this button press\n",
@@ -2036,8 +2053,8 @@ static irqreturn_t wcd_mbhc_release_handler(int irq, void *data)
 			wcd_mbhc_jack_report(mbhc, &mbhc->button_jack,
 					0, mbhc->buttons_pressed);
 		} else {
-			if (mbhc->in_swch_irq_handler) {
-				ad_logd("%s: Switch irq kicked in, ignore\n",
+			if (mbhc->in_swch_irq_handler || mbhc->ignore_btn_press) {
+				ad_logd("%s: Switch irq kicked in or ignore_btn_press = true, ignore\n",
 					__func__);
 			} else {
 				ad_loge("%s: Reporting btn press\n",
@@ -2320,8 +2337,29 @@ int wcd_mbhc_init(struct wcd_mbhc *mbhc, struct snd_soc_codec *codec,
 	const char *ext1_cap = "qcom,msm-micbias1-ext-cap";
 	const char *ext2_cap = "qcom,msm-micbias2-ext-cap";
 	const char *mbhc_cap_mark = "huawei,cable-enable-mbhc";
+	struct device_node *of_audio_node = NULL;
+	const char *ptype = NULL;
+	char *restr = NULL;
 
 	ad_logn("%s: enter\n", __func__);
+	of_audio_node = of_find_compatible_node(NULL, NULL, "huawei,hw_audio_info");
+	if(!of_audio_node) {
+		ad_loge("%s: Can not find dev node: \"hw_audio_info\"\n",
+				__func__);
+	} else {
+		ret = of_property_read_string(of_audio_node, "product-identifier", &ptype);
+		if(ret) {
+			ad_loge("%s: Can not find string about: \"product-identifier\"\n",
+					__func__);
+		} else {
+			restr = strstr(ptype, "rio");
+			if(restr) {
+				enable_ignore_btn_press = true;
+				ad_loge("%s: Can find string about: \"product-identifier\","
+						"enable ignore btn press\n", __func__);
+			}
+		}
+	}
 
 	ret = of_property_read_u32(card->dev->of_node, hph_switch, &hph_swh);
 	if (ret) {
@@ -2348,6 +2386,7 @@ int wcd_mbhc_init(struct wcd_mbhc *mbhc, struct snd_soc_codec *codec,
 	ad_logn("%s: det_extn_cable_en = %d\n", __func__, det_extn_cable_en);
 
 	mbhc->in_swch_irq_handler = false;
+	mbhc->ignore_btn_press = false;
 	mbhc->current_plug = MBHC_PLUG_TYPE_NONE;
 	mbhc->is_btn_press = false;
 	mbhc->codec = codec;

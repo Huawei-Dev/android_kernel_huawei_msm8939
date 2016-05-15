@@ -456,6 +456,7 @@ int msm_camera_get_dt_power_setting_data(struct device_node *of_node,
 		}
 	}
 
+
 	for (i = 0; i < count; i++) {
 		rc = of_property_read_string_index(of_node,
 			"qcom,cam-power-seq-val", i,
@@ -527,6 +528,7 @@ int msm_camera_get_dt_power_setting_data(struct device_node *of_node,
 		rc = -ENOMEM;
 		goto ERROR1;
 	}
+
 
 	rc = of_property_read_u32_array(of_node, "qcom,cam-power-seq-cfg-val",
 		array, count);

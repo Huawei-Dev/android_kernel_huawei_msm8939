@@ -71,6 +71,7 @@ static u8 dataflag = 0;
 	{ 0,	ACCEL_ODR0_781},
 };
 
+
 static struct sensors_classdev kionix_acc_cdev = {
 	.name = "kx023-accel",
 	.vendor = "KIONIXMicroelectronics",
@@ -107,6 +108,7 @@ static int kionix_acc_config_regulator(struct kionix_accel_driver *acc, bool on)
 	int rc = 0, i;
 	int num_reg = 2;
 	struct sensor_regulator *kionix_acc_vreg = acc->kionix_acc_vreg;
+
 
 	if (on) {
 		for (i = 0; i < num_reg; i++) {
@@ -193,6 +195,7 @@ static int kionix_i2c_write(struct kionix_accel_driver *acceld, u8 reg, u8 value
 			break;
 	}
 
+
 	if(loop == 0){
 		KIONIX_ERR("---------cut here-------\n"
 			"WARNING:at %s %d:kx023 acceler data is exception %s() err=%d "
@@ -203,6 +206,7 @@ static int kionix_i2c_write(struct kionix_accel_driver *acceld, u8 reg, u8 value
 	}
 	return err;
 }
+
 
 static int kionix_i2c_read(struct kionix_accel_driver *acceld, u8 addr, u8 *buf,int len)
 {
@@ -315,6 +319,8 @@ static int kionix_strtok(const char *buf, size_t count, char **token, const int 
 
 	return (i == token_nr) ? token_nr : -1;
 }
+
+
 
 static int kionix_accel_init_and_power_on(struct kionix_accel_driver *acceld)
 {
@@ -511,6 +517,7 @@ static void kionix_accel_report_accel_data(struct kionix_accel_driver *acceld)
 	acceld->kx023_dsm_operation.check_exception(&acceld->accel_data[acceld->axis_map_x],acceld);
 #endif
 
+
 	/*print important regs and xyz value every 10 seconds*/
 	if( (kx023_debug_mask > 1) && false == acceld->queued_debug_work_flag)
 	{
@@ -630,6 +637,7 @@ static int kionix_accel_update_odr(struct kionix_accel_driver *acceld, unsigned 
 	return 0;
 }
 
+
 static void kionix_accel_work(struct work_struct *work)
 {
 	struct kionix_accel_driver *acceld = container_of((struct delayed_work *)work,	struct kionix_accel_driver, accel_work);
@@ -667,6 +675,15 @@ static void kionix_accel_update_direction(struct kionix_accel_driver *acceld)
 		acceld->negate_y = 0;
 	}
 	/*this is for top paster*/
+	else if(direction == GS_MAP_DIRECTION_NOREVERSAL)
+	{
+		acceld->axis_map_x = 0;
+		acceld->axis_map_y = 1;
+		acceld->axis_map_z = 2;
+		acceld->negate_z = 0;
+		acceld->negate_x = 0;
+		acceld->negate_y = 0;
+	}
 	else
 	{
 		acceld->axis_map_x = 0;
@@ -808,6 +825,7 @@ static int  kionix_accel_setup_input_device(struct kionix_accel_driver *acceld)
 	input_set_abs_params(input_dev, ABS_X, -ACCEL_G_MAX, ACCEL_G_MAX, ACCEL_FUZZ, ACCEL_FLAT);
 	input_set_abs_params(input_dev, ABS_Y, -ACCEL_G_MAX, ACCEL_G_MAX, ACCEL_FUZZ, ACCEL_FLAT);
 	input_set_abs_params(input_dev, ABS_Z, -ACCEL_G_MAX, ACCEL_G_MAX, ACCEL_FUZZ, ACCEL_FLAT);
+
 
 	input_dev->name = KIONIX_ACCEL_INPUT_NAME;
 	input_dev->id.bustype = BUS_I2C;
@@ -1265,6 +1283,7 @@ static int kx023_pinctrl_init(struct kionix_accel_driver *acc)
 	return 0;
 }
 
+
 /**
 *	verify chipid and set report function, and some control functions
 */
@@ -1378,6 +1397,7 @@ static int kionix_acc_enable_set(struct sensors_classdev *sensors_cdev,
 		}
 		KIONIX_INFO("app disalbe gsensor");
 	}
+
 
 	return err;
 }
@@ -1535,6 +1555,7 @@ static int  kionix_accel_init_workfunc(struct kionix_accel_driver *acceld)
 	return 0;
 }
 
+
 static int  kionix_accel_probe(struct i2c_client *client,
 				 const struct i2c_device_id *id)
 {
@@ -1582,6 +1603,7 @@ static int  kionix_accel_probe(struct i2c_client *client,
 		goto err_kfree_pdata;
 	}
 
+
 	if (client->dev.of_node) {
 		err = kionix_parse_dt(&client->dev, acceld);
 		if (err) {
@@ -1607,6 +1629,7 @@ static int  kionix_accel_probe(struct i2c_client *client,
 		goto err_config_regulator;
 	}
 #endif
+
 
 	/*verify who_am_i and set a series of callback functions*/
 	err = kionix_verify_and_set_callback_func(acceld);
@@ -1819,4 +1842,5 @@ module_exit(kionix_accel_exit);
 MODULE_DESCRIPTION("Kionix accelerometer driver");
 MODULE_LICENSE("GPL");
 MODULE_VERSION("3.3.0");
+
 

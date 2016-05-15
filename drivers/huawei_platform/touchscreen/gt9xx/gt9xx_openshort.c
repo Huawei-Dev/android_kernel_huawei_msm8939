@@ -103,6 +103,7 @@ extern struct i2c_client * i2c_connect_client;
 
 static void record_tp_capacitance( int value);
 
+
 u8  gt9xx_drv_num = MAX_DRIVER_NUM; // default driver and sensor number
 u8  gt9xx_sen_num = MAX_SENSOR_NUM;
 u16 gt9xx_pixel_cnt = MAX_DRIVER_NUM * MAX_SENSOR_NUM;
@@ -141,6 +142,7 @@ static void append_info_line(void)
     }
 }
 
+
 #define SET_INFO_LINE_INFO(fmt, args...)       do{ memset(tmp_info_line, '\0', 80);\
                                                    snprintf(tmp_info_line, sizeof(tmp_info_line), "<Sysfs-INFO>"fmt"\n", ##args);\
                                                    tp_log_info("%s "fmt"\n", __func__,##args);\
@@ -150,6 +152,7 @@ static void append_info_line(void)
                                                    snprintf(tmp_info_line, sizeof(tmp_info_line), "<Sysfs-ERROR>"fmt"\n", ##args);\
                                                    tp_log_err("%s "fmt"\n", __func__,##args);\
                                                    append_info_line();}while(0)
+
 
 static u8 cfg_drv_order[MAX_DRIVER_NUM];
 static u8 cfg_sen_order[MAX_SENSOR_NUM];
@@ -363,6 +366,7 @@ u8 gt9_get_short_tp_chnl(u8 phy_chnl, u8 is_driver)
     return 0xFF;
 }
 
+
 static s32 gtp_i2c_end_cmd(struct i2c_client *client)
 {
     u8  end_cmd[3] = {GTP_READ_COOR_ADDR >> 8, GTP_READ_COOR_ADDR & 0xFF, 0};
@@ -489,6 +493,8 @@ s32 gtp_parse_config(struct i2c_client *client)
     
     return SUCCESS;
 }
+
+
 
 /*
  * Function:
@@ -694,6 +700,8 @@ s32 gtp_short_resist_check(struct gt9xx_short_info *short_node)
         return FAIL;
     }
 }
+
+
 
 /*
  * Function: 
@@ -1039,6 +1047,7 @@ s32 gt9_test_gnd_vdd_short(struct i2c_client *client)
     return ret;
 }
 
+
 /*
  * leave short test 
  */
@@ -1053,6 +1062,7 @@ void gt9xx_leave_short_test(struct i2c_client *client)
     SET_INFO_LINE_INFO("");
     SET_INFO_LINE_INFO("---gtp short test end---");
 }
+
 
 /*
  * Function:
@@ -1887,6 +1897,7 @@ static void gtp_uniformity_test(u16 *raw_buf)
      }
 }
 
+
 /*
 *********************************************************************************************************
 * Function: 
@@ -1933,6 +1944,7 @@ static u32 gtp_raw_test(u16 *raw_buf, u32 check_types)
     }
     return SUCCESS;
 } 
+
 
 /*
 ====================================================================================================
@@ -2122,6 +2134,7 @@ static void record_tp_capacitance( int value)
 
     return;
 }
+
 
 /*
  ===================================================

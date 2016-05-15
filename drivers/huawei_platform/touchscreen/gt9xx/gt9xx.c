@@ -72,6 +72,7 @@ struct i2c_client * i2c_connect_client = NULL;
 #define MAX_BUTTONS		4
 /*delete goodix_debug_mask in order to use common debug mask*/
 
+
 /* HIGH: 0x28/0x29, LOW: 0xBA/0xBB */
 #define GTP_I2C_ADDRESS_HIGH	0x14
 #define GTP_I2C_ADDRESS_LOW	0x5D
@@ -134,6 +135,7 @@ extern u8 gup_init_update_proc(struct goodix_ts_data *);
 
 extern s32 gtp_test_sysfs_init(void); 
 extern void gtp_test_sysfs_deinit(void); 
+
 
 #if GTP_ESD_PROTECT
 static struct delayed_work gtp_esd_check_work;
@@ -490,6 +492,8 @@ static void gtp_touch_up(struct goodix_ts_data* ts, s32 id)
 	input_mt_sync(ts->input_dev);
 #endif
 }
+
+
 
 /*******************************************************
 Function:
@@ -2261,6 +2265,7 @@ bak_ref_default:
     return SUCCESS;
 }
 
+
 static s32 gtp_verify_main_clk(u8 *p_main_clk)
 {
     u8 chksum = 0;
@@ -2967,6 +2972,7 @@ static int goodix_ts_remove(struct i2c_client *client)
 	unregister_early_suspend(&ts->early_suspend);
 #endif
 
+
 #if GTP_CREATE_WR_NODE
 	uninit_wr_node();
 #endif
@@ -3527,6 +3533,7 @@ static int __init goodix_ts_init(void)
 #endif
 
     ret = i2c_add_driver(&goodix_ts_driver);
+
 
     return ret;
 }

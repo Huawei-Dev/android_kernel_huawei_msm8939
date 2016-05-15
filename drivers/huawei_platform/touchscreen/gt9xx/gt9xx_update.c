@@ -69,6 +69,7 @@
 #define PACK_SIZE                    200
 #define MAX_FRAME_CHECK_TIME         5
 
+
 #define _bRW_MISCTL__SRAM_BANK       0x4048
 #define _bRW_MISCTL__MEM_CD_EN       0x4049
 #define _bRW_MISCTL__CACHE_EN        0x404B
@@ -330,6 +331,7 @@ static s32 gup_init_panel(struct goodix_ts_data *ts)
     msleep(10);
     return 0;
 }
+
 
 static u8 gup_get_ic_msg(struct i2c_client *client, u16 addr, u8* msg, s32 len)
 {
@@ -657,6 +659,8 @@ static u8 gup_enter_update_judge(st_fw_head *fw_head)
 
     return FAIL;
 }
+
+
 
 #if GTP_AUTO_UPDATE_CFG
 static u8 ascii2hex(u8 a)
@@ -2726,6 +2730,7 @@ u8 gup_init_update_proc(struct goodix_ts_data *ts)
 #define _rRW_MISCTL__GIO1CTL_B2_                  0x41ee
 #define _rRW_MISCTL__GIO1CTL_B1_                  0x41ed
 
+
 #if GTP_COMPATIBLE_MODE
 
 u8 i2c_opr_buf[GTP_ADDR_LENGTH + FL_PACK_SIZE] = {0};
@@ -2735,6 +2740,7 @@ extern s32 gtp_fw_startup(struct i2c_client *client);
 static u8 gup_download_fw_dsp(struct i2c_client *client, u8 dwn_mode);
 static s32 gup_burn_fw_proc(struct i2c_client *client, u16 start_addr, s32 start_index, s32 burn_len);
 static s32 gup_check_and_repair(struct i2c_client *client, u16 start_addr, s32 start_index, s32 chk_len);
+
 
 u8 gup_check_fs_mounted(char *path_name)
 {
@@ -2854,6 +2860,8 @@ s32 i2c_read_bytes(struct i2c_client *client, u16 addr, u8 *buf, s32 len)
     }
     return 2;
 }
+
+
 
 // main clock calibration
 // bit: 0~7, val: 0/1
@@ -3153,6 +3161,8 @@ s32 gup_clk_calibration(void)
     gpio_direction_input(ts->pdata->irq_gpio);
     return i;
 }
+
+
 
 s32 gup_hold_ss51_dsp(struct i2c_client *client)
 {
@@ -3513,6 +3523,7 @@ static u8 gup_download_fw_ss51(struct i2c_client *client, u8 dwn_mode)
     
     return SUCCESS;
 }
+
 
 static s32 gup_prepare_fl_fw(char *path, st_fw_head *fw_head)
 {

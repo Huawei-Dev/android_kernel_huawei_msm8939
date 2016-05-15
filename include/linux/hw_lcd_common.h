@@ -18,7 +18,7 @@
 
 /* remove to hw_lcd_debug.h */
 #ifdef CONFIG_HUAWEI_DSM
-#include <linux/dsm_pub.h>
+#include <dsm/dsm_pub.h>
 #endif
 
 /* Add dynamic_log interface */
@@ -44,6 +44,12 @@ enum
 };
 int get_tp_gesture_enable_status(void);
 void set_tp_gesture_enable_status(int type);
+/*
+*merge qcom patch from 02098626: 08_20_patches.zip
+*add delay time before vddio-incell enable for ATH JDINT35695. if vddio-incell pull down time is smaller than 80ms.
+*/
+void set_tp_vddio_poweroff_time(unsigned long jz);
+unsigned long get_tp_vddio_poweroff_time(void);
 extern int lcd_debug_mask ;
 /*add power status error judge,avoid red screen*/
 struct lcd_pwr_status_t
@@ -68,6 +74,10 @@ extern struct lcd_pwr_status_t lcd_pwr_status;
 /* FPC unlock can't light lcd backlight */
 int get_lcd_power_delay_time(void);
 void set_lcd_power_delay_time(int delay_timeValue);
+/* Difference synchronization to 8939-FEIMA-M-GP between LCD module 8939-L-GP and 8939-FEIMA-M-GP . */
+/*open tp gesture can't wake up screen probability*/
+bool get_tp_reset_enable(void);
+void set_tp_reset_status(bool ath_tp_reset);
 #ifndef LCD_LOG_ERR
 #define LCD_LOG_ERR( x...)					\
 do{											\

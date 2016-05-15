@@ -59,8 +59,12 @@ struct Upgrade_Info {
 	u16 delay_earse_flash; /*delay of earse flash*/
 };
 
+
 int fts_ctpm_fw_upgrade(struct i2c_client *client, u8 *pbt_buf,
 			  u32 dw_lenth);
+
+
+
 
 int ft6x06_write_reg(struct i2c_client *client, u8 regaddr, u8 regvalue)
 {
@@ -71,10 +75,12 @@ int ft6x06_write_reg(struct i2c_client *client, u8 regaddr, u8 regvalue)
 	return ft6x06_i2c_Write(client, buf, sizeof(buf));
 }
 
+
 int ft6x06_read_reg(struct i2c_client *client, u8 regaddr, u8 *regvalue)
 {
 	return ft6x06_i2c_Read(client, &regaddr, 1, regvalue, 1);
 }
+
 
 int fts_ctpm_auto_clb(struct i2c_client *client)
 {
@@ -124,6 +130,7 @@ void ft6x06_upgrade_with_i_handler(struct ft6x06_ts_data *ft6x06_ts)
     
     tp_log_debug("complete for ft6x06_updata_completion \n");
 }
+
 
 /*
 upgrade with *.i file
@@ -184,6 +191,7 @@ int fts_ctpm_update_project_setting(struct i2c_client *client)
 	uc_io_voltage = 0x0;
 	uc_panel_factory_id = 0x5a;
 
+
 	/*Step 1:Reset  CTPM
 	*write 0xaa to register 0xfc
 	*/
@@ -202,6 +210,7 @@ int fts_ctpm_update_project_setting(struct i2c_client *client)
 		i_ret = ft6x06_i2c_Write(client, auc_i2c_write_buf, 2);
 		msleep(5);
 	} while (i_ret <= 0 && i < 5);
+
 
 	/*********Step 3:check READ-ID***********************/
 	auc_i2c_write_buf[0] = 0x90;
@@ -463,6 +472,7 @@ int fts_ctpm_fw_upgrade(struct i2c_client *client, u8 *pbt_buf,
 			msleep(5);
 		} while (i_ret <= 0 && j< 5);
 
+
 		/*********Step 3:check READ-ID***********************/
 		msleep(FT6X06_UPGRADE_READID_DELAY);
 		auc_i2c_write_buf[0] = 0x90;
@@ -595,6 +605,7 @@ int fts_ctpm_fw_upgrade(struct i2c_client *client, u8 *pbt_buf,
 		//msleep(20);
 	}
 
+
 	/*********Step 6: read out checksum***********************/
 	/*send the opration head */
 	tp_log_debug("Step 6: read out checksum\n");
@@ -651,6 +662,8 @@ static int ft6x06_GetFirmwareSize(char *firmware_name)
 	return fsize;
 }
 
+
+
 /*
 *read firmware buf for .bin file.
 
@@ -694,6 +707,8 @@ static int ft6x06_ReadFirmware(char *firmware_name,
 
 	return 0;
 }
+
+
 
 /*
 upgrade with *.bin file
@@ -822,6 +837,7 @@ static int ft5x0x_get_testparam_from_ini(char *config_name)
 	SetParamData(filedata);
 	return 0;
 }
+
 
 //#endif
 int focal_i2c_Read(unsigned char *writebuf,
@@ -1017,6 +1033,7 @@ unsigned int ft6x36_get_factory_id(struct i2c_client * client, unsigned char *pP
 	return 0;
 }
 
+
 static ssize_t ft5x0x_ftsscaptest_store(struct device *dev,
 					struct device_attribute *attr,
 						const char *buf, size_t count)
@@ -1061,6 +1078,7 @@ static ssize_t ft5x0x_ftsscapsample_show(struct device *dev,
 	tp_log_info("exit %s %d\n", __func__, __LINE__);
 	return ret_count;
 }
+
 
 static ssize_t ft5x0x_ftsscapsample_store(struct device *dev,
 					struct device_attribute *attr,

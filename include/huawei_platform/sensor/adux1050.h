@@ -511,6 +511,7 @@ Force calibration delay
 */
 #define FORCE_CALIB_SLEEP_TIME	(300)
 
+
 #ifdef CONFIG_ADUX1050_POLL
 
 /**
@@ -553,6 +554,7 @@ ASCII Values for 0 is 30
 */
 #define MAX_FILP_READ_SIZE	(1024)
 #endif
+
 
 /**
 Event packing for CDC Interrupt
@@ -858,6 +860,7 @@ struct adux1050_chip {
 	u16 version;
 	/** Chip metal version*/
 	u16 metal_id;
+
 
 };
 

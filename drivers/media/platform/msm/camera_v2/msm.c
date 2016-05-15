@@ -190,6 +190,7 @@ static inline int __msm_queue_find_command_ack_q(void *d1, void *d2)
 	return (ack->stream_id == *(unsigned int *)d2) ? 1 : 0;
 }
 
+
 struct msm_session *msm_session_find(unsigned int session_id)
 {
 	struct msm_session *session;
@@ -1219,6 +1220,7 @@ static void __exit msm_exit(void)
 {
 	platform_driver_unregister(&msm_driver);
 }
+
 
 module_init(msm_init);
 module_exit(msm_exit);

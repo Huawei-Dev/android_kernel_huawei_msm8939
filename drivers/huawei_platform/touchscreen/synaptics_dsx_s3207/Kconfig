@@ -1,4 +1,3 @@
-
 #
 # Synaptics DSX touchscreen driver configuration
 #
@@ -53,6 +52,7 @@ config TOUCHSCREEN_HUAWEI_DSX_PROXIMITY
 	  This enables support for proximity for Synaptics DSX
 	  touchscreens.
 
+
 config TOUCHSCREEN_HUAWEI_DSX_ESD
 	tristate "Synaptics DSX touchscreen esd"
 	depends on I2C
@@ -60,4 +60,3 @@ config TOUCHSCREEN_HUAWEI_DSX_ESD
 	help
 	  This enables support for proximity for Synaptics DSX
 	  touchscreens.
-

@@ -21,6 +21,7 @@
 #include "msm_camera_i2c.h"
 #include "msm_sd.h"
 
+
 struct msm_led_flash_ctrl_t;
 
 struct msm_flash_fn_t {

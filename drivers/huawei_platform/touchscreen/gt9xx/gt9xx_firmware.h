@@ -3,6 +3,7 @@
  * define your own firmware array here
 */
 
+
 #ifndef _GT9XX_FIRMWARE_H_
 #define _GT9XX_FIRMWARE_H_
 

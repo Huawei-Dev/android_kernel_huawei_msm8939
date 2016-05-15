@@ -12,6 +12,7 @@
 #include <linux/input.h>
 #include <linux/delay.h>
 
+
 #include "fpc1020_common.h"
 #include "fpc1020_capture.h"
 
@@ -31,6 +32,7 @@ int fpc1020_write_capture_setup(fpc1020_data_t *fpc1020)
 {
     return fpc1020_write_sensor_setup(fpc1020);
 }
+
 
 /* -------------------------------------------------------------------- */
 int fpc1020_write_test_setup(fpc1020_data_t *fpc1020, u16 pattern)
@@ -67,6 +69,7 @@ int fpc1020_write_test_setup(fpc1020_data_t *fpc1020, u16 pattern)
     return error;
 }
 
+
 /* -------------------------------------------------------------------- */
 bool fpc1020_capture_check_ready(fpc1020_data_t *fpc1020)
 {
@@ -76,6 +79,7 @@ bool fpc1020_capture_check_ready(fpc1020_data_t *fpc1020)
         (state == FPC1020_CAPTURE_STATE_COMPLETED) ||
         (state == FPC1020_CAPTURE_STATE_FAILED);
 }
+
 
 /* -------------------------------------------------------------------- */
 int fpc1020_capture_task(fpc1020_data_t *fpc1020)
@@ -290,6 +294,7 @@ out_error:
     return error;
 }
 
+
 /* -------------------------------------------------------------------- */
 int cal_thredhold(fpc1020_data_t *fpc1020)
 {
@@ -384,6 +389,7 @@ out_error:
     return (error >= 0) ? 0 : error;
 }
 
+
 /* -------------------------------------------------------------------- */
 int fpc1020_capture_wait_finger_up(fpc1020_data_t *fpc1020)
 {
@@ -392,6 +398,7 @@ int fpc1020_capture_wait_finger_up(fpc1020_data_t *fpc1020)
     int i = 0;
     wake_lock(&fpc1020->fp_wake_lock);
     while (!finger_up && (error >= 0)) {
+
 
         // todo: awaiting SW-152
 
@@ -420,6 +427,7 @@ int fpc1020_capture_wait_finger_up(fpc1020_data_t *fpc1020)
     wake_lock_timeout(&fpc1020->fp_wake_lock, FPC1020_DEFAULT_WAKELOCK_TIME_S);
     return (finger_up) ? 0 : error;
 }
+
 
 /* -------------------------------------------------------------------- */
 int fpc1020_capture_settings(fpc1020_data_t *fpc1020, int select)
@@ -458,6 +466,7 @@ out_err:
 
     return error;
 }
+
 
 /* -------------------------------------------------------------------- */
 int fpc1020_capture_set_crop(fpc1020_data_t *fpc1020,
@@ -563,5 +572,6 @@ out_error:
 
     return error;
 }
+
 
 /* -------------------------------------------------------------------- */

@@ -1,5 +1,5 @@
-
 #gt9xx touchpanel driver
+
 
 obj-$(CONFIG_GT9XX_TOUCHPANEL_DRIVER)	+= gt9xx.o
 #gt9xx update file

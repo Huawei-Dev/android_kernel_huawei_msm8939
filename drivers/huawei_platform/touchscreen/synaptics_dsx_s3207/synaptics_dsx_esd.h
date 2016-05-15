@@ -1,13 +1,4 @@
-/*******************************************************************
-                   Copyright 2008 - 2013, Huawei Tech. Co., Ltd.
-                             ALL RIGHTS RESERVED
 
-Filename      : synaptics_dsx_esd.h
-Creation time : 2014/8/2
-Description   : 
-
-Version       : 1.0
-********************************************************************/
 #include <linux/workqueue.h>
 #include "synaptics_dsx_i2c.h"
 /*move hw_tp_common.h to synaptics_dsx_i2c.h*/

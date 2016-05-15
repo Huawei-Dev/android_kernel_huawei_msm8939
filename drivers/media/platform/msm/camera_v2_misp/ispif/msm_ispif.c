@@ -57,6 +57,7 @@ static void msm_ispif_io_dump_reg(struct ispif_device *ispif)
 	msm_camera_io_dump(ispif->base, 0x250);
 }
 
+
 static inline int msm_ispif_is_intf_valid(uint32_t csid_version,
 	uint8_t intf_type)
 {
@@ -929,6 +930,7 @@ static int msm_ispif_restart_frame_boundary(struct ispif_device *ispif,
 
 		vfe_intf = params->entries[i].vfe_intf;
 
+
 		cid_mask = msm_ispif_get_cids_mask_from_cfg(
 			&params->entries[i]);
 
@@ -965,6 +967,7 @@ static int msm_ispif_stop_frame_boundary(struct ispif_device *ispif,
 
 	BUG_ON(!ispif);
 	BUG_ON(!params);
+
 
 	if (ispif->ispif_state != ISPIF_POWER_UP) {
 		pr_err("%s: ispif invalid state %d\n", __func__,

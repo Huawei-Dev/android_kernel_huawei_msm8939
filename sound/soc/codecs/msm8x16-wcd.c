@@ -132,6 +132,8 @@ enum {
 
 static int msm_cable_en = 0;
 
+static bool enable_tsmc = false;
+
 static const DECLARE_TLV_DB_SCALE(digital_gain, 0, 1, 0);
 static const DECLARE_TLV_DB_SCALE(analog_gain, 0, 25, 1);
 static struct snd_soc_dai_driver msm8x16_wcd_i2s_dai[];
@@ -1455,25 +1457,62 @@ static int spk_pa_enable_get(struct snd_kcontrol *kcontrol,
 	ucontrol->value.integer.value[0] = spk_ext_pa_enable_gpio;
 	return 0;
 }
+
+void spk_pa_enable_set_fn(struct work_struct *work)
+{
+	struct delayed_work *spk_pa_enable_work;
+	struct msm8916_asoc_mach_data *pdata;
+	struct snd_soc_codec *codec;
+	struct msm8x16_wcd_priv *msm8x16_wcd;
+
+	spk_pa_enable_work = to_delayed_work(work);
+	if(NULL == spk_pa_enable_work)
+	{
+		ad_loge("%s: The speaker pa enable's delay work is NULL!\n", __func__);
+		return;
+	}
+	pdata = container_of(spk_pa_enable_work, struct msm8916_asoc_mach_data, spk_pa_enable_dwork);
+	if(NULL == pdata)
+	{
+		ad_loge("%s: The pdata is NULL!\n", __func__);
+		return;
+	}
+	codec = pdata->codec;
+	msm8x16_wcd = snd_soc_codec_get_drvdata(codec);
+
+	if((ON==spk_ext_pa_enable_gpio) && (msm8x16_wcd->spk_pa_enable_set_cb)){
+		msm8x16_wcd->spk_pa_enable_set_cb(codec, spk_ext_pa_enable_gpio);
+		ad_logd("%s: Set speaker pa enable ON\n", __func__);
+	}
+
+	return;
+}
 static int spk_pa_enable_set(struct snd_kcontrol *kcontrol,
 				struct snd_ctl_elem_value *ucontrol)
 {
 	struct snd_soc_codec *codec = snd_kcontrol_chip(kcontrol);
 	struct msm8x16_wcd_priv *msm8x16_wcd = snd_soc_codec_get_drvdata(codec);
+	struct snd_soc_card *card = codec->card;
+	struct msm8916_asoc_mach_data *pdata = snd_soc_card_get_drvdata(card);
+
 	switch (ucontrol->value.integer.value[0]) {
 	case OFF:
-        spk_ext_pa_enable_gpio = OFF;
+        	spk_ext_pa_enable_gpio = OFF;
 		if (msm8x16_wcd->spk_pa_enable_set_cb)
-            msm8x16_wcd->spk_pa_enable_set_cb(codec, OFF);
+            		msm8x16_wcd->spk_pa_enable_set_cb(codec, OFF);
 		break;
 	case ON:
-        spk_ext_pa_enable_gpio = ON;
-		if (msm8x16_wcd->spk_pa_enable_set_cb)
-            msm8x16_wcd->spk_pa_enable_set_cb(codec, ON);
+		spk_ext_pa_enable_gpio = ON;
+		pdata->codec = codec;
+		schedule_delayed_work(&pdata->spk_pa_enable_dwork,
+				 msecs_to_jiffies(pdata->spk_pa_enable_delaytime));
+		ad_logd("%s: Speaker pa enable delay time: %dms\n",
+				__func__, pdata->spk_pa_enable_delaytime);
 		break;
 	default:
 		return -EINVAL;
 	}
+
 	return 0;
 }
 static int spk_pa_switch_vdd_get(struct snd_kcontrol *kcontrol,
@@ -2268,7 +2307,7 @@ static int msm8x16_wcd_codec_enable_adc(struct snd_soc_dapm_widget *w,
 	u16 adc_reg;
 	u8 init_bit_shift;
 
-	ad_dev_logd(codec->dev, "%s %d\n", __func__, event);
+	ad_dev_logd(codec->dev, "%s %d %d\n", __func__, event, enable_tsmc);
 
 	adc_reg = MSM8X16_WCD_A_ANALOG_TX_1_2_TEST_CTL_2;
 
@@ -2285,7 +2324,7 @@ static int msm8x16_wcd_codec_enable_adc(struct snd_soc_dapm_widget *w,
 
 	switch (event) {
 	case SND_SOC_DAPM_PRE_PMU:
-		if ((!TOMBAK_IS_1_0(msm8x16_wcd->pmic_rev))&& msm_cable_en)
+		if (!enable_tsmc && (!TOMBAK_IS_1_0(msm8x16_wcd->pmic_rev))&& msm_cable_en)
 		{
 			snd_soc_update_bits(codec,
 			MSM8X16_WCD_A_ANALOG_TX_1_2_OPAMP_BIAS, 0x07, 0x00);
@@ -2735,6 +2774,27 @@ static void tx_hpf_corner_freq_callback(struct work_struct *work)
 #define  CF_MIN_3DB_4HZ			0x0
 #define  CF_MIN_3DB_75HZ		0x1
 #define  CF_MIN_3DB_150HZ		0x2
+
+static int msm8x16_wcd_codec_set_iir_gain(struct snd_soc_dapm_widget *w,
+		struct snd_kcontrol *kcontrol, int event)
+{
+	struct snd_soc_codec *codec = w->codec;
+	int value = 0, reg;
+
+	switch (event) {
+	case SND_SOC_DAPM_POST_PMU:
+		if (w->shift == 0)
+			reg = MSM8X16_WCD_A_CDC_IIR1_GAIN_B1_CTL;
+		else if (w->shift == 1)
+			reg = MSM8X16_WCD_A_CDC_IIR2_GAIN_B1_CTL;
+		value = snd_soc_read(codec, reg);
+		snd_soc_write(codec, reg, value);
+		break;
+	default:
+		ad_dev_loge(codec->dev,"%s: event = %d not expected\n", __func__, event);
+	}
+	return 0;
+}
 
 static int msm8x16_wcd_codec_enable_dec(struct snd_soc_dapm_widget *w,
 	struct snd_kcontrol *kcontrol, int event)
@@ -3691,7 +3751,7 @@ static int msm8x16_wcd_codec_enable_ear_pa(struct snd_soc_dapm_widget *w,
 			__func__);
 		snd_soc_update_bits(codec, MSM8X16_WCD_A_ANALOG_RX_EAR_CTL,
 			    0x80, 0x80);
-		if ((get_codec_version(msm8x16_wcd) < CONGA)&&(!msm_cable_en))
+		if (enable_tsmc||((get_codec_version(msm8x16_wcd) < CONGA)&&(!msm_cable_en)))
 		{
 			snd_soc_update_bits(codec,
 			MSM8X16_WCD_A_ANALOG_RX_HPH_CNP_WG_TIME, 0xFF, 0x2A);
@@ -3732,7 +3792,7 @@ static int msm8x16_wcd_codec_enable_ear_pa(struct snd_soc_dapm_widget *w,
 		 */
 		snd_soc_update_bits(codec, MSM8X16_WCD_A_ANALOG_RX_EAR_CTL,
 			    0x80, 0x00);
-		if ((get_codec_version(msm8x16_wcd) < CONGA)&&(!msm_cable_en))
+		if (enable_tsmc||((get_codec_version(msm8x16_wcd) < CONGA)&&(!msm_cable_en)))
 		{
 			snd_soc_update_bits(codec,
 			MSM8X16_WCD_A_ANALOG_RX_HPH_CNP_WG_TIME, 0xFF, 0x16);
@@ -3971,12 +4031,12 @@ static const struct snd_soc_dapm_widget msm8x16_wcd_dapm_widgets[] = {
 
 	/* Sidetone */
 	SND_SOC_DAPM_MUX("IIR1 INP1 MUX", SND_SOC_NOPM, 0, 0, &iir1_inp1_mux),
-	SND_SOC_DAPM_PGA("IIR1",
-		MSM8X16_WCD_A_CDC_CLK_SD_CTL, 0, 0, NULL, 0),
+	SND_SOC_DAPM_PGA_E("IIR1", MSM8X16_WCD_A_CDC_CLK_SD_CTL, 0, 0, NULL, 0,
+		msm8x16_wcd_codec_set_iir_gain, SND_SOC_DAPM_POST_PMU),
 
 	SND_SOC_DAPM_MUX("IIR2 INP1 MUX", SND_SOC_NOPM, 0, 0, &iir2_inp1_mux),
-	SND_SOC_DAPM_PGA("IIR2",
-		MSM8X16_WCD_A_CDC_CLK_SD_CTL, 1, 0, NULL, 0),
+	SND_SOC_DAPM_PGA_E("IIR2", MSM8X16_WCD_A_CDC_CLK_SD_CTL, 1, 0, NULL, 0,
+		msm8x16_wcd_codec_set_iir_gain, SND_SOC_DAPM_POST_PMU),
 
 	SND_SOC_DAPM_SUPPLY("RX_I2S_CLK",
 		MSM8X16_WCD_A_CDC_CLK_RX_I2S_CTL,	4, 0, NULL, 0),
@@ -4352,6 +4412,34 @@ static int msm8x16_wcd_codec_probe(struct snd_soc_codec *codec)
 
 	const char *msm_cable_mark = "huawei,cable-enable-msm";
 
+	const char *ptype = NULL;
+	char *tsmcstr = NULL;
+	struct device_node *of_audio_node = NULL;
+
+	of_audio_node = of_find_compatible_node(NULL, NULL, "huawei,hw_audio_info");
+	if(!of_audio_node) 
+	{
+		ad_dev_loge(codec->dev, "%s: Can not find dev node: \"hw_audio_info\"\n",
+			__func__);
+	}
+	else
+	{
+		ret = of_property_read_string(of_audio_node, "product-identifier", &ptype);
+		if(ret)
+		{
+			ad_dev_loge(codec->dev, "%s: Can not find string about: \"product-identifier\"\n",
+				__func__);
+		}
+		else
+		{
+			tsmcstr = strstr(ptype, "g760");
+			if(tsmcstr)
+			{
+				enable_tsmc = true;
+				ad_dev_logd(codec->dev, "%s :Set TSMC enable\n", __func__);
+			}
+		}
+	}
 	audio_dsm_register();
 	ad_dev_logd(codec->dev, "%s()\n", __func__);
 

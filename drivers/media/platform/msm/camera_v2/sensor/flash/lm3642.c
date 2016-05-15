@@ -32,6 +32,7 @@
 //lm3642 flash flag register
 #define FLASH_FLAG_REGISTER 0x0B
 
+
 #define ENABLE_REGISTER 0x0A
 #define MODE_BIT_MASK 0x03
 #define MODE_BIT_STANDBY 0x00
@@ -102,6 +103,7 @@ static struct msm_camera_i2c_reg_array lm3642_torch_array[] = {
 	{CURRENT_REGISTER, 0x20},//140mA
 	{ENABLE_REGISTER, MODE_BIT_TORCH | EBABLE_BIT_IVFM},
 };
+
 
 static const struct of_device_id lm3642_i2c_trigger_dt_match[] = {
 	{.compatible = "ti,lm3642"},
@@ -212,6 +214,7 @@ int msm_flash_clear_err_and_unlock(struct msm_led_flash_ctrl_t *fctrl){
                 return -EINVAL;
         }
 
+
         if (fctrl->flash_i2c_client) {
                 rc = fctrl->flash_i2c_client->i2c_func_tbl->i2c_read(
                         fctrl->flash_i2c_client,
@@ -231,6 +234,7 @@ int msm_flash_clear_err_and_unlock(struct msm_led_flash_ctrl_t *fctrl){
                 pr_err("%s:%d flash_i2c_client NULL\n", __func__, __LINE__);
                 return -EINVAL;
         }
+
 
        return 0;
 
@@ -335,6 +339,7 @@ int msm_flash_lm3642_led_low(struct msm_led_flash_ctrl_t *fctrl)
 
 	flashdata = fctrl->flashdata;
 	power_info = &flashdata->power_info;
+
 
 	gpio_set_value_cansleep(
 		power_info->gpio_conf->gpio_num_info->
@@ -573,6 +578,7 @@ static void __exit msm_flash_lm3642_exit(void)
 	i2c_del_driver(&lm3642_i2c_driver);
 	return;
 }
+
 
 static struct msm_camera_i2c_client lm3642_i2c_client = {
 	.addr_type = MSM_CAMERA_I2C_BYTE_ADDR,

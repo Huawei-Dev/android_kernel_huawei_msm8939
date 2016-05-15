@@ -18,6 +18,7 @@
 /*#define DEBUG*/
 /*#define VERBOSE_DEBUG*/
 
+
 #include <linux/delay.h>
 #include <linux/device.h>
 #include <linux/freezer.h>
@@ -40,7 +41,7 @@
 #include <linux/hw_dev_dec.h>
 #endif
 #ifdef CONFIG_HUAWEI_DSM
-#include 	<linux/dsm_pub.h>
+#include 	<dsm/dsm_pub.h>
 #endif
 #include <misc/app_info.h>
 #ifdef CONFIG_HUAWEI_KERNEL
@@ -184,6 +185,7 @@ static void akm_gpios_show(struct akm_compass_data *akm);
 static void akm_regulators_show(struct akm_compass_data *akm);
 static void akm_regs_show(struct device *dev, char *buf);
 
+
 struct akm_excep_data{
 	int vdd_status;
 	int vdd_mv;
@@ -210,6 +212,7 @@ static struct dsm_dev dsm_ms_akm09911 = {
 	.buff_size = DSM_SENSOR_BUF_MAX,		// buffer size
 };
 static struct dsm_client *akm09911_ms_dclient = NULL;
+
 
 static int akm_dsm_excep_init(struct akm_compass_data *data)
 {
@@ -336,6 +339,7 @@ static ssize_t ms_dsm_record_data_err_info(struct akm_compass_data *data,const c
 	return total_size;
 }
 
+
 static ssize_t ms_dsm_record_same_data_err_info(struct akm_compass_data* data)
 {
 	int size = 0;
@@ -407,6 +411,7 @@ static void akm_report_i2c_err(int i2c_ret)
 
 }
 
+
 static void akm_dsm_copy_reg_buf(unsigned char* buffer)
 {
 	/* print registers value with Fixed format to reg_buf*/
@@ -416,6 +421,7 @@ static void akm_dsm_copy_reg_buf(unsigned char* buffer)
 	mutex_unlock(&akm09911_excep->excep_lock);
 
 }
+
 
 /*****************************************************************
 Parameters    :  x y z  the source value which are readed from register
@@ -498,6 +504,7 @@ i2c_err:
 	return ret;
 
 }
+
 
 static int akm_i2c_txdata(
 	struct i2c_client *i2c,
@@ -1571,6 +1578,7 @@ static ssize_t akm_bin_accel_write(
 	return size;
 }
 
+
 #if AKM_DEBUG_IF
 static ssize_t akm_sysfs_mode_store(
 	struct device *dev, struct device_attribute *attr,
@@ -1854,6 +1862,7 @@ static void remove_sysfs_interfaces(struct akm_compass_data *akm)
 		akm->compass = NULL;
 	}
 }
+
 
 /***** akm input device functions ***********************************/
 static int akm_compass_input_init(
@@ -2304,6 +2313,7 @@ static void akm_regs_show(struct device *dev, char *buf)
 	return;
 }
 
+
 /* Show akm magnetic sensor regulators. */
 static void akm_regulators_show(struct akm_compass_data *akm)
 {
@@ -2326,6 +2336,7 @@ static void akm_regulators_show(struct akm_compass_data *akm)
 	AKM09911_WARN("vio enable=%d\n",akm09911_excep->vio_status);
 	AKM09911_WARN("vio voltage=%d(mV)\n",akm09911_excep->vio_mv);
 
+
 	return;
 }
 
@@ -2346,6 +2357,7 @@ static void akm_gpios_show(struct akm_compass_data *akm)
 	return;
 }
 #endif
+
 
 static int akm_report_data(struct akm_compass_data *akm)
 {
@@ -2927,6 +2939,7 @@ int akm_compass_probe(struct i2c_client *client, const struct i2c_device_id *id)
 	if(err < 0)
 		goto exit3;
 #endif
+
 
 	err = akm09911_i2c_check_device(client);
 	if (err < 0)

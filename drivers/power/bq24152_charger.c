@@ -90,6 +90,7 @@ static int factory_diag_last_current_ma = 0;
 static int bq2415x_set_in_thermal(int val);
 //delete dead code.
 
+
 static void bq2415x_set_appropriate_jeita(struct bq2415x_device *bq);
 static int jeita_find_running_zone(jeita_entry **r_entry,jeita_spec *batt_param);
 
@@ -165,6 +166,7 @@ static int jeita_find_running_zone(jeita_entry **r_entry,jeita_spec *batt_param)
 #define BQ2415X_MASK_VI_TERM		(BIT(0)|BIT(1)|BIT(2))
 #define BQ2415X_SHIFT_VI_TERM		0
 
+
 //move code to bq24152_charger.h
 
 static char *bq2415x_chip_name[] = {
@@ -197,6 +199,7 @@ extern int set_running_test_flag(int value);
 extern int is_usb_chg_exist(void);
 extern int qpnp_lbc_is_in_vin_min_loop(void);
 static int bq2415x_enable_charge(int val);
+static int bq2415x_factory_diag(int val);
 
 static int poor_input_enable = 0;
 
@@ -231,6 +234,8 @@ static int bq2415x_i2c_read(struct bq2415x_device *bq, u8 reg)
 
 	return val;
 }
+
+
 
 /* read value from register, apply mask and right shift it */
 static int bq2415x_i2c_read_mask(struct bq2415x_device *bq, u8 reg,
@@ -1376,6 +1381,8 @@ static void bq2415x_usb_low_power_work(struct work_struct *work)
 	u8 reg_val = 0;
 	union power_supply_propval val = {0};
 
+
+
 	/* exit when usb absent*/
 	usb_present = is_usb_chg_exist();
 	if(!usb_present)
@@ -1770,7 +1777,7 @@ static int bq2415x_power_supply_set_property(struct power_supply *psy,
         bq2415x_set_in_thermal(val->intval);
         break;
     case POWER_SUPPLY_PROP_FACTORY_DIAG:
-        bq2415x_enable_charge(val->intval);
+        bq2415x_factory_diag(val->intval);
         break;
     case POWER_SUPPLY_PROP_CURRENT_MAX:
 	case POWER_SUPPLY_PROP_STATUS:
@@ -1817,7 +1824,6 @@ static void set_charging_by_current_limit(struct bq2415x_device *bq)
             schedule_delayed_work(&bq->lower_power_charger_work, 0);
     }
 }
-
 #define OTG_RETRY_ENABLE_DELAY_MS	10
 #define OTG_RETRY_ERR_COUNT			3
 extern bool get_usb_id_status(void);
@@ -1843,14 +1849,13 @@ static void check_otg_id_work(struct work_struct *work)
 	pr_info("retry to open otg, count is %d\n", otg_err_count);
 	bq24152_control_otg(bq, true);
 }
-
 static void bq2415x_external_power_changed(struct power_supply *psy)
 {
 	struct bq2415x_device *bq = container_of(psy, struct bq2415x_device,
 								charger);
 	unsigned long flags;
     int current_ma = 0, charger_present = 0;
-    int usb_present = 0;
+	int usb_present = 0;
     union power_supply_propval ret = {0,};
 	spin_lock_irqsave(&bq->ibat_change_lock, flags);
     if(!bq->use_only_charge)
@@ -2631,6 +2636,22 @@ static int bq2415x_set_runningtest(int val)
 
 static int bq2415x_enable_charge(int val)
 {
+    int rc = 0;
+    if(!g_bq){
+        pmu_log_info("cd_debug bq_device is null, do nothing\n");
+        return -1;
+    }
+    g_bq->charging_disabled = !(val);
+    pmu_log_info("set hw_power charging_enabled value is %d\n",val);
+    if(!g_bq->charging_disabled)
+	    rc = bq2415x_exec_command(g_bq, BQ2415X_HIGH_IMPEDANCE_DISABLE);
+    else
+        rc = bq2415x_exec_command(g_bq, BQ2415X_HIGH_IMPEDANCE_ENABLE);
+    user_ctl_status = val;
+    return 0;
+}
+static int bq2415x_factory_diag(int val)
+{
     union power_supply_propval val_factory_diag = {0,};
     if(!g_bq){
         pmu_log_info("cd_debug bq_device is null, do nothing\n");
@@ -2744,6 +2765,7 @@ static int bq2415x_get_battery_status(void)
             return POWER_SUPPLY_STATUS_FULL;
         else
           return POWER_SUPPLY_STATUS_DISCHARGING;
+
 
     return POWER_SUPPLY_STATUS_DISCHARGING;
 }

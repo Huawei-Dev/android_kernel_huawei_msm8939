@@ -140,6 +140,7 @@ int scm_set_dload_mode(int arg1, int arg2)
 		return 0;
 	}
 
+
 	if (!is_scm_armv8())
 		return scm_call_atomic2(SCM_SVC_BOOT, SCM_DLOAD_CMD, arg1,
 					arg2);
@@ -253,6 +254,8 @@ int usb_update_thread(void *__unused)
     return 0;
 }
 #endif
+
+#ifdef CONFIG_HUAWEI_KERNEL_DEBUG
 static void enable_emergency_dload_mode(void)
 {
 	int ret;
@@ -277,6 +280,7 @@ static void enable_emergency_dload_mode(void)
 	if (ret)
 		pr_err("Failed to set secure EDLOAD mode: %d\n", ret);
 }
+#endif
 
 static int dload_set(const char *val, struct kernel_param *kp)
 {
@@ -423,8 +427,11 @@ static void msm_restart_prepare(const char *cmd)
 			if (!ret)
 				__raw_writel(0x6f656d00 | (code & 0xff),
 					     restart_reason);
+
+#ifdef CONFIG_HUAWEI_KERNEL_DEBUG
 		} else if (!strncmp(cmd, "edl", 3)) {
 			enable_emergency_dload_mode();
+#endif
 #ifdef CONFIG_FEATURE_HUAWEI_EMERGENCY_DATA
 		} else if (!strncmp(cmd, "mountfail", strlen("mountfail"))) {
 		    __raw_writel(MOUNTFAIL_MAGIC_NUM, restart_reason);
@@ -540,6 +547,7 @@ static void do_msm_poweroff(void)
 #ifdef CONFIG_HUAWEI_RESET_DETECT
     clear_reset_magic();
 #endif
+
 
 	qpnp_pon_system_pwr_off(PON_POWER_OFF_SHUTDOWN);
 	/* Needed to bypass debug image on some chips */

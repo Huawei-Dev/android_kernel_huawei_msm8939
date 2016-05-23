@@ -94,6 +94,7 @@
 #define CAPACITY_DEBOUNCE_MAX	4
 #define CUTOFF_LEVEL	2
 #define FAKE_CUTOFF_LEVEL	3
+#define CAPACITY_RAMP_DOWN    97
 /* Remove 3450mV cutoff voltage */
 #define ZERO_LEVEL    0
 #define ZERO_LEVEL_COUNT    10
@@ -104,9 +105,9 @@ struct bq27510_device_info
 {
     struct device  *dev;
     int             id;
+    const char*    battery_type;
     struct power_supply    ti_bms_psy;
-    struct power_supply    *ti_charger;
-    struct power_supply    *qcom_bms;
+    struct power_supply    *batt_psy;
     struct i2c_client      *client;
     struct delayed_work     notifier_work;
     struct delayed_work     update_work;
@@ -131,3 +132,4 @@ extern int is_bq27510_battery_full(struct bq27510_device_info *di);
 extern int is_usb_chg_exist(void);
 extern int bq27510_battery_capacity(struct bq27510_device_info *di);
 extern short bq27510_battery_current(struct bq27510_device_info *di);
+extern char *huawei_charger_batt_type(void);

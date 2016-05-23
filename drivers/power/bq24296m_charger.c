@@ -40,124 +40,10 @@
 #ifdef CONFIG_HUAWEI_PMU_DSM
 #include <linux/power/huawei_dsm_charger.h>
 #endif
-#include <linux/regulator/driver.h>
-#include <linux/regulator/of_regulator.h>
-#include <linux/regulator/machine.h>
+/* move code to header file */
 #define HWLOG_TAG  bq24296_charger
-struct bq24296m_otg_regulator
-{
-    struct regulator_desc    rdesc;
-    struct regulator_dev    *rdev;
-};
+/* move code to header file */
 
-struct bq24296m_device_info
-{
-    struct device        *dev;
-    struct i2c_client    *client;
-    struct delayed_work   bq24296m_charger_work;
-    struct delayed_work   bq24296m_usb_otg_work;
-    struct work_struct    usb_work;
-    struct delayed_work   otg_int_work;
-    struct delayed_work   ibus_detect_work;
-    struct power_supply    charger;
-    struct power_supply *qcom_bms_psy;
-    struct power_supply *usb_psy;
-    struct bq24296m_otg_regulator    otg_vreg;
-    struct mutex    hot_limit_lock;
-    struct mutex    current_change_lock;
-    struct bq24296m_temp_control_info *temp_ctrl;
-    spinlock_t        psy_lock;
-    unsigned int      otg_int_work_cnt;
-
-    unsigned int      wakelock_enabled;
-    unsigned short    input_source_reg00;
-    unsigned short    power_on_config_reg01;
-    unsigned short    charge_current_reg02;
-    unsigned short    prechrg_term_current_reg03;
-    unsigned short    charge_voltage_reg04;
-    unsigned short    term_timer_reg05;
-    unsigned short    thermal_regulation_reg06;
-    unsigned short    misc_operation_reg07;
-    unsigned short    system_status_reg08;
-    unsigned short    charger_fault_reg09;
-    unsigned short    bqchip_version;
-
-    unsigned int      max_currentmA;
-    unsigned int      max_voltagemV;
-    unsigned int      max_cin_currentmA;
-    unsigned int      max_cin_cfg_currentmA;
-
-    unsigned int    cin_dpmmV;
-    unsigned int    cin_limit;
-    unsigned int    chrg_config;
-    unsigned int    sys_minmV;
-    unsigned int    currentmA;
-    unsigned int    prechrg_currentmA;
-    unsigned int    term_currentmA;
-    unsigned int    voltagemV;
-    unsigned int    watchdog_timer;
-    unsigned int    chrg_timer;
-    unsigned int    bat_compohm;
-    unsigned int    comp_vclampmV;
-    unsigned int    boostv;
-    unsigned int    bhot;
-    bool    hz_mode;
-    bool    boost_lim;
-    bool    bcold_threshold;
-    bool    enable_low_chg;
-    bool    cfg_params;
-    bool    enable_iterm;
-    bool    enable_timer;
-    bool    enable_timer_temp;
-    bool    enable_batfet;
-    bool    cd_active;
-    bool    factory_flag;
-    bool    calling_limit;
-    bool    battery_present;
-    bool    enable_dpdm;
-    bool    rt_discharge_flag;
-    bool    ibus_detecting;
-    bool    no_ibus_detect;
-
-    int     charger_source;
-    int     timer_fault;
-    unsigned int    battery_temp_status;
-    unsigned long           event;
-    unsigned int input_event;
-
-    int     gpio_cd;
-    int     gpio_int;
-    int     irq_int;
-    int     battery_voltage;
-    int     temperature_cold;
-    int     temperature_cool;
-    int     temperature_warm;
-    int     temperature_hot;
-    bool    not_limit_chrg_flag;
-    bool    not_stop_chrg_flag;
-    bool    battery_full;
-    bool   soc_resume_charging;
-    int     temperature_5;
-    int     temperature_10;
-    u32    charge_full_count;
-
-    /* these parameters are for charging between 0C-5C & 5C-10C, 1-0.1*capacity...
-       charge_in_temp_5 means the parameter for charging between 0C-5C. */
-    unsigned int design_capacity;
-    unsigned int charge_in_temp_5;
-    unsigned int charge_in_temp_10;
-
-    int  bat_temp_ctl_type;
-    int  charge_status;
-    int  charger_present;
-    int  charge_current_limit;
-    int  hot_limit_current;
-    int  capacity;
-    bool cin_float_flag;
-    bool    gpio_cd_level_reverse;
-    int    fake_battery_soc;
-
-};
 
 static struct wake_lock chrg_lock;
 static struct wake_lock stop_chrg_lock;
@@ -241,17 +127,21 @@ enum
 
 /* remove old temp control code */
 
-#define bq24296m_bms_qcom_psy(di)\
+#define bq24296m_bms_psy(di)\
 ({\
-    if (!di->qcom_bms_psy)\
+    if (!di->bms_name)\
     {\
-        di->qcom_bms_psy = power_supply_get_by_name(POWR_SUPPLY_BMS_NAME);\
-        if (!di->qcom_bms_psy)\
+        di->bms_name = POWR_SUPPLY_BMS_NAME;\
+    }\
+    if (!di->bms_psy)\
+    {\
+        di->bms_psy = power_supply_get_by_name(di->bms_name);\
+        if (!di->bms_psy)\
         {\
-            pr_err("the qcom battery power_supply is not got!!\n");\
+            pr_err("the battery power_supply is not got!!\n");\
         }\
     }\
-    di->qcom_bms_psy;\
+    di->bms_psy;\
 })
 
 #define bq24296m_charger_get_ext_property(pwr_spy, pwr_psp, ptr_val)\
@@ -369,14 +259,14 @@ static int bq24296m_get_battery_capacity(struct bq24296m_device_info *di)
         /* return the user-defined battery soc */
         return di->fake_battery_soc;
     }
-
-    if (!bq24296m_bms_qcom_psy(di))
+    if (!bq24296m_bms_psy(di))
     {
         return BATT_DEFAULT_SOC;
     }
 
-    rc = di->qcom_bms_psy->get_property(di->qcom_bms_psy,
-                                        POWER_SUPPLY_PROP_CAPACITY, &bat_soc_val);
+    if (di->bms_psy)
+        rc = di->bms_psy->get_property(di->bms_psy,
+                                            POWER_SUPPLY_PROP_CAPACITY, &bat_soc_val);
     if (unlikely(IS_ERR_VALUE(rc)))
     {
         pr_err("get battery capacity failed! rc = %d \n", rc);
@@ -412,7 +302,12 @@ static int bq24296m_parse_dts_charge_parameter(struct bq24296m_device_info *di)
     di->gpio_cd_level_reverse = of_property_read_bool(np, "ti,gpio_cd_level_reverse");
 
     di->no_ibus_detect = of_property_read_bool(np, "ti,no_ibus_detect");
-
+    ret = of_property_read_string(np, "bms-name", &di->bms_name);
+    if (ret)
+    {
+        di->bms_name = POWR_SUPPLY_BMS_NAME;
+    }
+    pmu_log_info("use bms (%s) in charger driver\n", di->bms_name);
     return 1;
 }
 
@@ -642,6 +537,7 @@ static void bq24296m_config_power_on_reg(struct bq24296m_device_info *di)
     u8 Sysmin = 0;
 
     sys_min = di->sys_minmV;
+
 
     if(sys_min < SYS_MIN_MIN_3000)
         sys_min = SYS_MIN_MIN_3000;
@@ -1349,6 +1245,7 @@ static void bq24296m_start_usb_charger(struct bq24296m_device_info *di)
     return;
 }
 
+
 static void bq24296m_detect_ibus_work(struct work_struct* work)
 {
     struct bq24296m_device_info* di =
@@ -1953,6 +1850,7 @@ int get_bq_charge_status()
     return POWER_SUPPLY_STATUS_DISCHARGING;
 }
 
+
 static void bq24296m_charger_work(struct work_struct *work)
 {
 
@@ -2523,6 +2421,7 @@ static ssize_t bq24296m_set_enable_charger(struct device *dev,
         di->charge_status = POWER_SUPPLY_STATUS_NOT_CHARGING;
     }
     bq24296m_config_power_on_reg(di);
+
 
     return status;
 }
@@ -3498,7 +3397,7 @@ static int bq24296m_power_supply_get_property(struct power_supply *psy,
         break;
 
     case POWER_SUPPLY_PROP_CURRENT_NOW:
-        bq24296m_charger_get_ext_property(di->qcom_bms_psy, POWER_SUPPLY_PROP_CURRENT_NOW, val);
+        bq24296m_charger_get_ext_property(di->bms_psy, POWER_SUPPLY_PROP_CURRENT_NOW, val);
         break;
 
     case POWER_SUPPLY_PROP_HEALTH:
@@ -3518,7 +3417,7 @@ static int bq24296m_power_supply_get_property(struct power_supply *psy,
         break;
 
     case POWER_SUPPLY_PROP_CHARGE_FULL_DESIGN:
-        bq24296m_charger_get_ext_property(di->qcom_bms_psy, POWER_SUPPLY_PROP_CHARGE_FULL_DESIGN, val);
+        bq24296m_charger_get_ext_property(di->bms_psy, POWER_SUPPLY_PROP_CHARGE_FULL_DESIGN, val);
         break;
 
     case POWER_SUPPLY_PROP_RESUME_CHARGING:
@@ -3623,9 +3522,10 @@ static void bq24296m_external_power_changed(struct power_supply *psy)
     unsigned long flags;
 
     spin_lock_irqsave(&di->psy_lock, flags);
-
-    if (!di->qcom_bms_psy)
-        di->qcom_bms_psy = power_supply_get_by_name("bms");
+    if (!bq24296m_bms_psy(di))
+    {
+        pmu_log_err("the battery power supply is not got!!\n");
+    }
 
     spin_unlock_irqrestore(&di->psy_lock, flags);
 
@@ -3663,6 +3563,7 @@ static void bq24296m_external_power_changed(struct power_supply *psy)
 static char *bq24296m_supplied_to[] =
 {
     "bms",
+    "ti-bms",
 };
 
 static int bq24296m_power_supply_init(struct bq24296m_device_info *di)

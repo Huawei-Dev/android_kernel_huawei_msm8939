@@ -18,6 +18,10 @@
 #ifndef _LINUX_BQ24296M_CHARGER_H
 #define _LINUX_BQ24296M_CHARGER_H
 
+#include <linux/regulator/driver.h>
+#include <linux/regulator/of_regulator.h>
+#include <linux/regulator/machine.h>
+
 #define MIN_INT                (1 << 31)
 #define MAX_INT                (~(1 << 31))
 #define TEMP_CTL_POINTS_NUM    (12)
@@ -35,6 +39,7 @@
 #define POWER_SUPPLY_OVERVOLTAGE               (0x80)
 #define POWER_SUPPLY_WEAKSOURCE                (0x90)
 #define BQ2419x_RESET_TIMER                    (0x38)
+
 
 /*Input Source Control Register REG00(default 00110xxx, or 3x)*/
 #define INPUT_SOURCE_REG00    0x00
@@ -213,6 +218,8 @@
 #define BQ24296M_NOT_VSYS_STAT            (0x00)
 #define BQ24296M_VSYS_STAT                (0x01)
 
+
+
 /*Fault Register REG09*/
 #define CHARGER_FAULT_REG09    0x09
 
@@ -281,6 +288,7 @@
 #define BQ24296M_NORNAL_ICHRG_VOLTAGE     (3400)
 #define CAPACITY_LEVEL_HIGH_THRESHOLD    (80)
 #define POWR_SUPPLY_BATTERY_NAME   "battery"
+#define POWR_SUPPLY_TI_BMS_NAME    "ti-bms"
 #define POWR_SUPPLY_BMS_NAME    "bms"
 #define BATT_DEFAULT_TEMP		250
 #define BATT_DEFAULT_VOL		3800
@@ -328,6 +336,122 @@ struct bq24296m_temp_control_info {
 extern struct bq24296m_temp_control_info bq24296_temp_info;
 
 int get_bq_charge_status(void);
+
+struct bq24296m_otg_regulator
+{
+    struct regulator_desc    rdesc;
+    struct regulator_dev    *rdev;
+};
+
+struct bq24296m_device_info
+{
+    struct device        *dev;
+    struct i2c_client    *client;
+    struct delayed_work   bq24296m_charger_work;
+    struct delayed_work   bq24296m_usb_otg_work;
+    struct work_struct    usb_work;
+    struct delayed_work   otg_int_work;
+    struct delayed_work   ibus_detect_work;
+    struct power_supply    charger;
+    const char    *bms_name;
+    struct power_supply *bms_psy;
+    struct power_supply *usb_psy;
+    struct bq24296m_otg_regulator    otg_vreg;
+    struct mutex    hot_limit_lock;
+    struct mutex    current_change_lock;
+    struct bq24296m_temp_control_info *temp_ctrl;
+    spinlock_t        psy_lock;
+    unsigned int      otg_int_work_cnt;
+
+    unsigned int      wakelock_enabled;
+    unsigned short    input_source_reg00;
+    unsigned short    power_on_config_reg01;
+    unsigned short    charge_current_reg02;
+    unsigned short    prechrg_term_current_reg03;
+    unsigned short    charge_voltage_reg04;
+    unsigned short    term_timer_reg05;
+    unsigned short    thermal_regulation_reg06;
+    unsigned short    misc_operation_reg07;
+    unsigned short    system_status_reg08;
+    unsigned short    charger_fault_reg09;
+    unsigned short    bqchip_version;
+
+    unsigned int      max_currentmA;
+    unsigned int      max_voltagemV;
+    unsigned int      max_cin_currentmA;
+    unsigned int      max_cin_cfg_currentmA;
+
+    unsigned int    cin_dpmmV;
+    unsigned int    cin_limit;
+    unsigned int    chrg_config;
+    unsigned int    sys_minmV;
+    unsigned int    currentmA;
+    unsigned int    prechrg_currentmA;
+    unsigned int    term_currentmA;
+    unsigned int    voltagemV;
+    unsigned int    watchdog_timer;
+    unsigned int    chrg_timer;
+    unsigned int    bat_compohm;
+    unsigned int    comp_vclampmV;
+    unsigned int    boostv;
+    unsigned int    bhot;
+    bool    hz_mode;
+    bool    boost_lim;
+    bool    bcold_threshold;
+    bool    enable_low_chg;
+    bool    cfg_params;
+    bool    enable_iterm;
+    bool    enable_timer;
+    bool    enable_timer_temp;
+    bool    enable_batfet;
+    bool    cd_active;
+    bool    factory_flag;
+    bool    calling_limit;
+    bool    battery_present;
+    bool    enable_dpdm;
+    bool    rt_discharge_flag;
+    bool    ibus_detecting;
+    bool    no_ibus_detect;
+
+    int     charger_source;
+    int     timer_fault;
+    unsigned int    battery_temp_status;
+    unsigned long           event;
+    unsigned int input_event;
+
+    int     gpio_cd;
+    int     gpio_int;
+    int     irq_int;
+    int     battery_voltage;
+    int     temperature_cold;
+    int     temperature_cool;
+    int     temperature_warm;
+    int     temperature_hot;
+    bool    not_limit_chrg_flag;
+    bool    not_stop_chrg_flag;
+    bool    battery_full;
+    bool   soc_resume_charging;
+    int     temperature_5;
+    int     temperature_10;
+    u32    charge_full_count;
+
+    /* these parameters are for charging between 0C-5C & 5C-10C, 1-0.1*capacity...
+       charge_in_temp_5 means the parameter for charging between 0C-5C. */
+    unsigned int design_capacity;
+    unsigned int charge_in_temp_5;
+    unsigned int charge_in_temp_10;
+
+    int  bat_temp_ctl_type;
+    int  charge_status;
+    int  charger_present;
+    int  charge_current_limit;
+    int  hot_limit_current;
+    int  capacity;
+    bool cin_float_flag;
+    bool    gpio_cd_level_reverse;
+    int    fake_battery_soc;
+
+};
 
 #endif
 

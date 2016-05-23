@@ -30,7 +30,11 @@
 #include <linux/firmware.h>
 #include <linux/power/bq27510_bms.h>
 #include <linux/power/bq24152_charger.h>
+#include <linux/power/bq24296m_charger.h>
 #include <linux/of_gpio.h>
+#include <linux/charger_core.h>
+#include <linux/of_batterydata.h>
+#include <linux/qpnp/qpnp-adc.h>
 
 #ifdef CONFIG_HUAWEI_HW_DEV_DCT
 #include <linux/hw_dev_dec.h>
@@ -43,7 +47,13 @@
 #define HWLOG_TAG bq27510_bms
 #define ID_LEN   12
 extern int is_usb_chg_exist(void);
+#if defined(PRODUCTION_ALE_KERNEL) || defined(PRODUCTION_G760_KERNEL)
 struct bq2415x_device *bq_device;
+#else
+struct bq24296m_device_info *bq_device;
+atomic_t battery_full_flag = ATOMIC_INIT(0);
+#endif
+
 static bool use_ti_coulometer=false;
 static bool use_filter_mode = false;
 static DEFINE_MUTEX(bq27510_battery_mutex);
@@ -106,8 +116,10 @@ struct bq27510_context gauge_context =
     .i2c_error_count = 0
 };
 
+
 #define GAS_GAUGE_I2C_ERR_STATICS() ++gauge_context.i2c_error_count
 #define GAS_GAUGE_LOCK_STATICS() ++gauge_context.lock_count
+
 
 static bool factory_flag = false;
 static int __init early_parse_factory_flag(char * p)
@@ -148,6 +160,7 @@ static int bq27510_is_accessible(void)
     }
 }
 
+
 static int bq27510_i2c_read_word(struct bq27510_device_info *di,u8 reg)
 {
     int err = 0;
@@ -175,6 +188,7 @@ static int bq27510_i2c_read_word(struct bq27510_device_info *di,u8 reg)
 
     return err;
 }
+
 
 static int bq27510_i2c_word_write(struct i2c_client *client, u8 reg, u16 value)
 {
@@ -325,6 +339,7 @@ short bq27510_battery_current(struct bq27510_device_info *di)
     else
         gauge_context.bat_current = data;
 
+
     nCurr = (signed short)data;
 
     pr_debug("read current result = %d mA\n", nCurr);
@@ -370,6 +385,7 @@ int bq27510_battery_rm(struct bq27510_device_info *di)
     }
     else
         gauge_context.remaining_capacity = data;
+
 
     pr_debug("read rm result = %d mAh\n",data);
     return data;
@@ -418,6 +434,7 @@ static int bq27510_get_gasgauge_qmax(struct bq27510_device_info *di)
 
     return data;
 }
+
 
 int bq27510_battery_tte(struct bq27510_device_info *di)
 {
@@ -619,6 +636,7 @@ int is_bq27510_battery_exist(struct bq27510_device_info *di)
     return gauge_context.battery_present;
 }
 
+
 int is_bq27510_battery_reach_threshold(struct bq27510_device_info *di)
 {
     int data = 0;
@@ -667,6 +685,7 @@ static int bq27510_get_firmware_version_by_i2c(struct i2c_client *client)
     return data;
 }
 
+
 int bq27510_battery_status(struct bq27510_device_info *di)
 {
     int data=0;
@@ -702,6 +721,7 @@ int bq27510_battery_health(struct bq27510_device_info *di)
 {
     int data=0;
     int status =0;
+
 
     if(!bq27510_is_accessible())
         return gauge_context.battery_health;
@@ -781,6 +801,7 @@ static unsigned long bq27510_strtoul(const char *cp, unsigned int base)
 
     return result;
 }
+
 
 static int bq27510_firmware_program(struct i2c_client *client, const unsigned char *pgm_data, unsigned int filelen)
 {
@@ -948,6 +969,7 @@ static int bq27510_firmware_download(struct i2c_client *client, const unsigned c
     return iRet;
 }
 
+
 int get_gas_version_id(char * id, char * name)
 {
     char *end, *start;
@@ -976,7 +998,7 @@ static void bq27510_firmware_update(struct work_struct *work)
     char chip_fw_version[ID_LEN] = {0};
     const struct firmware *fw = NULL;
     const char *product_name = NULL;
-    union power_supply_propval val = {0};
+/* remove useless code */
     struct firmware_header *fw_header = NULL;
     struct bq27510_device_info *di = NULL;
     struct device_node *np = NULL;
@@ -997,19 +1019,15 @@ static void bq27510_firmware_update(struct work_struct *work)
     pr_info("product name is %s\n",product_name);
 
     //get batt id
-    if(di->qcom_bms)
-    {
-        di->qcom_bms->get_property(di->qcom_bms,POWER_SUPPLY_PROP_BATTERY_TYPE,&val);
-    }
-
-    if(!di->qcom_bms || !val.strval)
+    di->battery_type = huawei_charger_batt_type();
+    if(NULL == di->battery_type)
     {
         schedule_delayed_work(&di->update_work, msecs_to_jiffies(3000));
         return;
     }
 
     //battery firmware name
-    snprintf(fw_name,sizeof fw_name,"%s-%s.fw",product_name,val.strval);
+    snprintf(fw_name,sizeof fw_name,"%s-%s.fw",product_name, di->battery_type);
     pr_info("find battery firmware %s\n",fw_name);
 
     //call user space for firmware
@@ -1070,12 +1088,14 @@ static void bq27510_firmware_update(struct work_struct *work)
     return;
 }
 
+
 static void bq27510_update_firmware_work(struct work_struct *work)
 {
     gBq27510DownloadFirmwareFlag = BSP_FIRMWARE_DOWNLOAD_MODE;
     bq27510_firmware_update(work);
     gBq27510DownloadFirmwareFlag = BSP_NORMAL_MODE;
 }
+
 
 /*
  * Use BAT_LOW not BAT_GD. When battery capacity is below SOC1, BAT_LOW PIN will pull up and cause a
@@ -1121,6 +1141,69 @@ static int bq27510_dt_parse(struct device *dev, struct bq27510_device_info *di)
     return rc;
 }
 
+#if !defined(PRODUCTION_ALE_KERNEL) && !defined(PRODUCTION_G760_KERNEL)
+static void resume_charge_check(struct bq27510_device_info *di)
+{
+    union power_supply_propval ret = {0,};
+    int curr_capacity = 0 ;
+
+    if (!atomic_read(&battery_full_flag))
+        return;
+
+    curr_capacity = bq27510_battery_capacity(di);
+
+    if(NULL == di->batt_psy)
+    {
+        di->batt_psy = power_supply_get_by_name("battery");
+    }
+    if (di->batt_psy) {
+        if (curr_capacity <= 99) {
+            ret.intval = true;
+        }
+        else {
+            ret.intval = false;
+        }
+        di->batt_psy->set_property(di->batt_psy,
+            POWER_SUPPLY_PROP_RESUME_CHARGING, &ret);
+    }
+    pmu_log_info("resume_charging_check is %d with real SoC %d\n", ret.intval, curr_capacity);
+}
+#endif
+
+static int get_charge_status(struct bq27510_device_info *di)
+{
+#if defined(PRODUCTION_ALE_KERNEL) || defined(PRODUCTION_G760_KERNEL)
+    return bq_device->charge_status;
+#else
+    union power_supply_propval val = {0,};
+    if (!di->batt_psy)
+        di->batt_psy = power_supply_get_by_name("battery");
+    if (di->batt_psy)
+        di->batt_psy->get_property(di->batt_psy,
+                POWER_SUPPLY_PROP_STATUS, &val);
+    return val.intval;
+#endif
+}
+
+static void set_charge_status(struct bq27510_device_info *di, int status)
+{
+#if defined(PRODUCTION_ALE_KERNEL) || defined(PRODUCTION_G760_KERNEL)
+    bq_device->charge_status = status;
+#else
+    union power_supply_propval val = {0,};
+
+    if (!di->batt_psy)
+        di->batt_psy = power_supply_get_by_name("battery");
+    if (di->batt_psy) {
+        val.intval = status;
+        di->batt_psy->set_property(di->batt_psy,
+                POWER_SUPPLY_PROP_STATUS, &val);
+    }
+    if (POWER_SUPPLY_STATUS_FULL == status)
+        atomic_set(&battery_full_flag, 1);
+#endif
+}
+
 static int battery_monitor_capacity_changed(struct bq27510_device_info *di)
 {
     int curr_capacity = 0;
@@ -1130,10 +1213,14 @@ static int battery_monitor_capacity_changed(struct bq27510_device_info *di)
     static int zero_level_count = 0;
     int voltage_now = 0;
     union power_supply_propval val = {0};
+    int ramp_step = 0;
+#if !defined(PRODUCTION_ALE_KERNEL) && !defined(PRODUCTION_G760_KERNEL)
+    static int ramp_count = 0;
+#endif
 
-    if(di->ti_charger)
+    if(di->batt_psy)
     {
-        di->ti_charger->get_property(di->ti_charger,POWER_SUPPLY_PROP_PRESENT, &val);
+        di->batt_psy->get_property(di->batt_psy,POWER_SUPPLY_PROP_PRESENT, &val);
         bat_exist = val.intval;
     }
     if (!bat_exist)
@@ -1155,7 +1242,7 @@ static int battery_monitor_capacity_changed(struct bq27510_device_info *di)
             pmu_log_info("do not report zero in factory mode \n");
             curr_capacity = 1;
         }
-        if ((bq_device != NULL) && (bq_device->charge_status == POWER_SUPPLY_STATUS_DISCHARGING))
+        if ((bq_device != NULL) && (get_charge_status(di) == POWER_SUPPLY_STATUS_DISCHARGING))
         {
             /* Remove the code of get battery voltage and fake cutoff capacity*/
             if(curr_capacity <= CUTOFF_LEVEL)
@@ -1187,10 +1274,27 @@ static int battery_monitor_capacity_changed(struct bq27510_device_info *di)
         di->monitoring_interval = DEFALUT_MONITOR_TIME;
     }
 
+#if defined(PRODUCTION_ALE_KERNEL) || defined(PRODUCTION_G760_KERNEL)
     if (is_usb_chg_exist() == CHARGER_ONLINE && di->capacity == CAPACITY_FULL && bq_device)
-        bq_device->charge_status = POWER_SUPPLY_STATUS_FULL;
+        set_charge_status(di, POWER_SUPPLY_STATUS_FULL);
+#else
+    if((di->capacity == CAPACITY_FULL) && (curr_capacity == CAPACITY_FULL) &&
+            (is_usb_chg_exist() == CHARGER_ONLINE))
+    {
+        set_charge_status(di, POWER_SUPPLY_STATUS_FULL);
+    }
 
-    if(bq_device && (bq_device->charge_status == POWER_SUPPLY_STATUS_CHARGING) && (di->capacity > CAPACITY_NEAR_FULL))
+    if (atomic_read(&battery_full_flag) && (curr_capacity > CAPACITY_RAMP_DOWN))
+    {
+        curr_capacity = CAPACITY_FULL;
+    }
+    else
+    {
+        atomic_set(&battery_full_flag, 0);
+    }
+#endif
+
+    if(bq_device && (get_charge_status(di) == POWER_SUPPLY_STATUS_CHARGING) && (di->capacity > CAPACITY_NEAR_FULL))
     {
         di->charge_full_count++;
         if(bq_device->charge_full_count >= CHARGE_FULL_TIME)
@@ -1198,7 +1302,7 @@ static int battery_monitor_capacity_changed(struct bq27510_device_info *di)
             di->charge_full_count = CHARGE_FULL_TIME;
         }
     }
-    else if(bq_device && bq_device->charge_status == POWER_SUPPLY_STATUS_FULL)
+    else if(bq_device && (get_charge_status(di) == POWER_SUPPLY_STATUS_FULL))
     {
         di->charge_full_count = CHARGE_FULL_TIME;
     }
@@ -1207,7 +1311,7 @@ static int battery_monitor_capacity_changed(struct bq27510_device_info *di)
         di->charge_full_count = 0;
     }
 
-    if ((bq_device != NULL) && (bq_device->charge_status == POWER_SUPPLY_STATUS_CHARGING)
+    if ((bq_device != NULL) && (get_charge_status(di) == POWER_SUPPLY_STATUS_CHARGING)
         && (ZERO_LEVEL == curr_capacity)){
         voltage_now = bq27510_battery_voltage(di);
         if(ZERO_LEVEL_VOLTAGE <= voltage_now){
@@ -1240,7 +1344,7 @@ static int battery_monitor_capacity_changed(struct bq27510_device_info *di)
                      di->prev_capacity, curr_capacity,bq27510_battery_voltage(di));
         }
         /* capacity should not increase during discharging*/
-        if(bq_device && (bq_device->charge_status == POWER_SUPPLY_STATUS_DISCHARGING)
+        if(bq_device && (get_charge_status(di) == POWER_SUPPLY_STATUS_DISCHARGING)
                 && (di->prev_capacity < curr_capacity))
         {
             dev_info(di->dev,"capacity increase during discharge: prev_capacity = %d \n"
@@ -1250,13 +1354,31 @@ static int battery_monitor_capacity_changed(struct bq27510_device_info *di)
         }
         if(!di->last_soc_unbound)
         {
+            ramp_step = MAX_SOC_CHANGE;
+#if !defined(PRODUCTION_ALE_KERNEL) && !defined(PRODUCTION_G760_KERNEL)
+            if(abs(curr_capacity - di->prev_capacity) > MAX_SOC_CHANGE)
+            {
+                if(++ramp_count < 2)
+                {
+                    ramp_step = 0;
+                }
+                else
+                {
+                    ramp_count = 0;
+                }
+            }
+            else
+            {
+                ramp_count = 0;
+            }
+#endif
             if(curr_capacity > di->prev_capacity)
             {
-                curr_capacity = di->prev_capacity + MAX_SOC_CHANGE;
+                curr_capacity = di->prev_capacity + ramp_step;
             }
             else if(curr_capacity < di->prev_capacity && curr_capacity != 0)
             {
-                curr_capacity = di->prev_capacity - MAX_SOC_CHANGE;
+                curr_capacity = di->prev_capacity - ramp_step;
             }
             else
             {
@@ -1277,12 +1399,12 @@ static int battery_monitor_capacity_changed(struct bq27510_device_info *di)
         if (bq_device && is_usb_chg_exist() == CHARGER_ONLINE && (di->charge_full_count >= CHARGE_FULL_TIME))
         {
             curr_capacity = CAPACITY_FULL;
-            bq_device->charge_status = POWER_SUPPLY_STATUS_FULL;
+            set_charge_status(di, POWER_SUPPLY_STATUS_FULL);
         }
 
         di->capacity = curr_capacity;
         di->capacity_debounce_count = 0;
-        if(bq_device && bq_device->charge_status == POWER_SUPPLY_STATUS_FULL)
+        if(bq_device && (get_charge_status(di) == POWER_SUPPLY_STATUS_FULL))
         {
             di->capacity = CAPACITY_FULL;
         }
@@ -1305,6 +1427,11 @@ static void battery_monitor_work(struct work_struct *work)
                                      struct bq27510_device_info, battery_monitor_work.work);
     int current_temp = 0;
 
+#if !defined(PRODUCTION_ALE_KERNEL) && !defined(PRODUCTION_G760_KERNEL)
+    if (CHARGER_ONLINE != is_usb_chg_exist())
+        atomic_set(&battery_full_flag, 0);
+#endif
+
     current_temp = bq27510_battery_temperature(di);
 
     if (battery_monitor_capacity_changed(di) || ((di->prev_temp != current_temp) && (current_temp >= HIGH_TEMP)))
@@ -1314,11 +1441,15 @@ static void battery_monitor_work(struct work_struct *work)
 
     }
 
+#if !defined(PRODUCTION_ALE_KERNEL) && !defined(PRODUCTION_G760_KERNEL)
+    resume_charge_check(di);
+#endif
+
     di->prev_temp = current_temp;
 
     /* schedule the soc calculating work more frequently when other related module doesn't init well */
     /* Delete qcom_charger_psy */
-    if (!di->ti_charger || !bq_device) {
+    if (!di->batt_psy || !bq_device) {
             di->monitoring_interval = BOOT_MONITOR_TIME;
     }
     schedule_delayed_work(&di->battery_monitor_work,
@@ -1367,12 +1498,17 @@ static int ti_bms_power_get_property(struct power_supply *psy,
 
 static void ti_bms_external_power_changed(struct power_supply *psy)
 {
-    g_battery_measure_by_bq27510_device->ti_charger = power_supply_get_by_name("battery");
-    if(g_battery_measure_by_bq27510_device->ti_charger)
+    g_battery_measure_by_bq27510_device->batt_psy = power_supply_get_by_name("battery");
+    if(g_battery_measure_by_bq27510_device->batt_psy)
     {
-        bq_device = container_of(g_battery_measure_by_bq27510_device->ti_charger,struct bq2415x_device,charger);
+#if defined(PRODUCTION_ALE_KERNEL) || defined(PRODUCTION_G760_KERNEL)
+        bq_device = container_of(g_battery_measure_by_bq27510_device->batt_psy, struct bq2415x_device, charger);
+#else
+        bq_device = container_of(g_battery_measure_by_bq27510_device->batt_psy, struct bq24296m_device_info, charger);
+        if (CHARGER_ONLINE != is_usb_chg_exist())
+            atomic_set(&battery_full_flag, 0);
+#endif
     }
-    g_battery_measure_by_bq27510_device->qcom_bms = power_supply_get_by_name("bms");
 }
 
 static char *bq27510_supplied_to[] =
@@ -1382,7 +1518,10 @@ static char *bq27510_supplied_to[] =
 
 static ssize_t bq27510_show_gaugelog(struct device_driver *driver, char *buf)
 {
-    int temp = 0, voltage = 0, capacity = 100, rm = 0, fcc = 0,ufrm = 0,frm = 0,uffcc = 0,ffcc = 0,ufsoc = 100;
+    int temp = 0, voltage = 0, capacity = 100, rm = 0, fcc = 0;
+#ifndef PRODUCTION_G760_KERNEL
+	int ufrm = 0,frm = 0,uffcc = 0,ffcc = 0,ufsoc = 100;
+#endif
     int cur = 0,cyc = 0,si = 0;
     u16 flag = 0,control_status = 0;
     int qmax = 0;
@@ -1427,6 +1566,7 @@ static ssize_t bq27510_show_gaugelog(struct device_driver *driver, char *buf)
     mdelay(2);
     qmax =  bq27510_get_gasgauge_qmax(di);
     mdelay(2);
+#ifndef PRODUCTION_G760_KERNEL
     ufrm = bq27510_battery_ufrm(di);
     mdelay(2);
     frm = bq27510_battery_frm(di);
@@ -1437,15 +1577,24 @@ static ssize_t bq27510_show_gaugelog(struct device_driver *driver, char *buf)
     mdelay(2);
     ufsoc = bq27510_battery_ufsoc(di);
     mdelay(2);
+#endif
     if(qmax < 0)
     {
         return snprintf(buf, PAGE_SIZE, "%s", "Coulometer Damaged or Firmware Error \n");
     }
+#ifndef PRODUCTION_G760_KERNEL
     else
     {
         snprintf(buf, PAGE_SIZE, "%-9d  %-9d  %-4d  %-5d  %-6d  %-6d  %-6d  %-6d  0x%-5.4x  0x%-5.4x  %-6d  %-5d  %-5d  %-6d  %-6d  %-4d  ",
                 voltage,  (signed short)cur, capacity, rm, fcc, (signed short)cyc, (signed short)si, temp, flag, control_status, qmax, ufrm, frm, uffcc, ffcc, ufsoc);
     }
+#else
+	else
+	{
+        snprintf(buf, PAGE_SIZE, "%-9d  %-9d  %-4d  %-5d  %-6d  %-6d  %-6d  %-6d  0x%-5.4x  0x%-5.4x  %-6d  ",
+                voltage,  (signed short)cur, capacity, rm, fcc, (signed short)cyc, (signed short)si, temp, flag, control_status, qmax);
+	}
+#endif
     return strlen(buf);
 }
 
@@ -1459,6 +1608,7 @@ static ssize_t force_update_trigger(struct device_driver *driver,const char *buf
 }
 
 static DRIVER_ATTR(force_update_trigger, S_IWUSR | S_IWGRP, NULL,force_update_trigger);
+
 
 static ssize_t remaining_capacity_show(struct device_driver *driver, char *buf)
 {
@@ -1518,6 +1668,7 @@ static const struct attribute_group *driver_groups[] =
     &bq27510_sysfs_attr_group,
     NULL
 };
+
 
 static int bq27510_battery_probe(struct i2c_client *client,
                                  const struct i2c_device_id *id)
@@ -1606,6 +1757,7 @@ static int bq27510_battery_probe(struct i2c_client *client,
 	//remove redundant code
     g_battery_measure_by_bq27510_i2c_client = client;
     g_battery_measure_by_bq27510_device = di;
+
 
 #ifdef CONFIG_HUAWEI_HW_DEV_DCT
     set_hw_dev_flag(DEV_I2C_BATTERY);

@@ -1893,18 +1893,6 @@ int adm_open(int port_id, int path, int rate, int channel_mode, int topology,
 	if (atomic_read(&this_adm.copp.cnt[port_idx][copp_idx]) == 0) {
 		ad_logd("%s: open ADM: port_idx: %d, copp_idx: %d\n", __func__,
 			 port_idx, copp_idx);
-	if (( topology == SRS_TRUMEDIA_TOPOLOGY_ID) && !perf_mode) {
-		int res;
-		atomic_set(&this_adm.mem_map_cal_index, ADM_SRS_TRUMEDIA);
-		msm_dts_srs_tm_ion_memmap(&this_adm.outband_memmap);
-		res = adm_memory_map_regions(&this_adm.outband_memmap.paddr, 0,
-		(uint32_t *)&this_adm.outband_memmap.size, 1);
-		if (res < 0) {
-			ad_loge("%s: SRS adm_memory_map_regions failed ! addr = 0x%p, size = %d\n",
-			 __func__, (void*)this_adm.outband_memmap.paddr,
-		(uint32_t)this_adm.outband_memmap.size);
-		}
-	}
 
 		open.hdr.hdr_field = APR_HDR_FIELD(APR_MSG_TYPE_SEQ_CMD,
 						   APR_HDR_LEN(APR_HDR_SIZE),

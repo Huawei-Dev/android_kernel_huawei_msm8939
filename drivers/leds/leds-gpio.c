@@ -4,7 +4,6 @@
  * Copyright (C) 2007 8D Technologies inc.
  * Raphael Assenat <raph@8d.com>
  * Copyright (C) 2008 Freescale Semiconductor, Inc.
- * Copyright (C) 2016 The CyanogenMod Project
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 as
@@ -53,6 +52,7 @@ struct gpio_led_data {
 	u8 can_sleep;
 	u8 active_low;
 	u8 blinking;
+	bool blink;
 	int (*platform_gpio_blink_set)(unsigned gpio, int state,
 			unsigned long *delay_on, unsigned long *delay_off);
 };
@@ -189,13 +189,26 @@ static ssize_t gpio_led_blink_store(struct device *dev,
 	if (ret)
 		return ret;
 
-	if (!blinking)
+	if (!blinking) {
 		led_stop_software_blink(led_cdev);
-	else
+		led->blink = 0;
+	} else {
 		led_blink_set(led_cdev, &led->onMS, &led->offMS);
+		led->blink = 1;
+	}
 	return len;
 }
-DEVICE_ATTR(blink, 0664, NULL, gpio_led_blink_store);
+
+static ssize_t gpio_led_blink_show(struct device *dev,
+				struct device_attribute *attr, char *buf)
+{
+	struct led_classdev *led_cdev = dev_get_drvdata(dev);
+	struct gpio_led_data *led =
+			container_of(led_cdev, struct gpio_led_data, cdev);
+
+	return snprintf(buf, PAGE_SIZE, "%d\n", led->blink ? 1 : 0);
+}
+DEVICE_ATTR(blink, 0664, gpio_led_blink_show, gpio_led_blink_store);
 
 static struct attribute *gpio_led_attributes[] = {
 	&dev_attr_blink.attr,
@@ -270,10 +283,10 @@ static void delete_gpio_led(struct gpio_led_data *led)
 {
 	if (!gpio_is_valid(led->gpio))
 		return;
-	sysfs_remove_group(&led->cdev.dev->kobj,
-			&gpio_led_attr_group);
 	led_classdev_unregister(&led->cdev);
 	cancel_work_sync(&led->work);
+	sysfs_remove_group(&led->cdev.dev->kobj,
+			&gpio_led_attr_group);
 }
 
 struct gpio_leds_priv {

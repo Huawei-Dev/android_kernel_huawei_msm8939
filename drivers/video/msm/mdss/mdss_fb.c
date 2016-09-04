@@ -916,8 +916,6 @@ static DEVICE_ATTR(msm_fb_thermal_level, S_IRUGO | S_IWUSR,
 	mdss_fb_get_thermal_level, mdss_fb_set_thermal_level);
 static DEVICE_ATTR(always_on, S_IRUGO | S_IWUSR | S_IWGRP,
 	mdss_fb_get_doze_mode, mdss_fb_set_doze_mode);
-static DEVICE_ATTR(msm_fb_panel_status, S_IRUGO,
-	mdss_fb_get_panel_status, NULL);
 static DEVICE_ATTR(rgb, S_IRUGO | S_IWUSR | S_IWGRP, mdss_get_rgb, mdss_set_rgb);
 
 static struct attribute *mdss_fb_attrs[] = {
@@ -936,7 +934,6 @@ static struct attribute *mdss_fb_attrs[] = {
 	&dev_attr_mipi_crc.attr,
 	&dev_attr_lcd_checksum.attr,
 #endif
-	&dev_attr_msm_fb_panel_status.attr,
 	&dev_attr_rgb.attr,
 	NULL,
 };

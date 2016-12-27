@@ -1348,7 +1348,8 @@ PARAM_ERROR:
 		conf_array.size = conf_array32.size;
 		conf_array.reg_setting = compat_ptr(conf_array32.reg_setting);
 
-		if (!conf_array.size) {
+		if (!conf_array.size ||
+				conf_array.size > I2C_REG_DATA_MAX) {
 			pr_err("%s:%d conf_array.size = 0\n", __func__, __LINE__);
 			//rc = -EFAULT;
 			break;
@@ -1412,7 +1413,8 @@ PARAM_ERROR:
             conf_array.size = conf_array32.size;
             conf_array.reg_setting = compat_ptr(conf_array32.reg_setting);
 
-            if (!conf_array.size) {
+		if (!conf_array.size ||
+				conf_array.size > I2C_REG_DATA_MAX) {
                  pr_err("%s:%d failed\n", __func__, __LINE__);
                  break;
             }
@@ -1535,7 +1537,8 @@ PARAM_ERROR:
 		conf_array.size = conf_array32.size;
 		conf_array.reg_setting = compat_ptr(conf_array32.reg_setting);
 
-		if (!conf_array.size) {
+		if (!conf_array.size ||
+				conf_array.size > I2C_REG_DATA_MAX) {
 			pr_err("%s:%d failed\n", __func__, __LINE__);
 			rc = -EFAULT;
 			break;
@@ -1967,7 +1970,8 @@ PARAM_ERROR:
 			break;
 		}
 
-		if (!conf_array.size) {
+		if (!conf_array.size ||
+				conf_array.size > I2C_REG_DATA_MAX) {
 			pr_err("%s:%d conf_array.size = 0\n", __func__, __LINE__);
 			//rc = -EFAULT;
 			break;
@@ -2020,7 +2024,8 @@ PARAM_ERROR:
                  break;
             }
 
-            if (!conf_array.size) {
+		if (!conf_array.size ||
+				conf_array.size > I2C_REG_DATA_MAX) {
                  pr_err("%s:%d failed\n", __func__, __LINE__);
                  break;
             }
@@ -2139,7 +2144,8 @@ PARAM_ERROR:
 			write_config.slave_addr,
 			write_config.conf_array.size);
 
-		if (!write_config.conf_array.size) {
+		if (!write_config.conf_array.size ||
+				write_config.conf_array.size > I2C_SEQ_REG_DATA_MAX) {
 			pr_err("%s:%d failed\n", __func__, __LINE__);
 			rc = -EFAULT;
 			break;
@@ -2224,11 +2230,13 @@ PARAM_ERROR:
 			break;
 		}
 
-		if (!conf_array.size) {
+		if (!conf_array.size ||
+			conf_array.size > I2C_SEQ_REG_DATA_MAX) {
 			pr_err("%s:%d failed\n", __func__, __LINE__);
 			rc = -EFAULT;
 			break;
 		}
+
 		reg_setting = kzalloc(conf_array.size *
 			(sizeof(struct msm_camera_i2c_seq_reg_array)),
 			GFP_KERNEL);

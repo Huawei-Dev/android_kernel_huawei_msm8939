@@ -1075,7 +1075,7 @@ static int wcd9xxx_enable_static_supplies(struct wcd9xxx *wcd9xxx,
 			       wcd9xxx->supplies[i].supply);
 			break;
 		} else {
-			ad_logd("%s: Enabled regulator %s\n", __func__,
+			pr_debug("%s: Enabled regulator %s\n", __func__,
 				 wcd9xxx->supplies[i].supply);
 		}
 	}
@@ -1101,7 +1101,7 @@ static void wcd9xxx_disable_supplies(struct wcd9xxx *wcd9xxx,
 			pr_err("%s: Failed to disable %s\n", __func__,
 			       wcd9xxx->supplies[i].supply);
 		} else {
-			ad_logd("%s: Disabled regulator %s\n", __func__,
+			pr_debug("%s: Disabled regulator %s\n", __func__,
 				 wcd9xxx->supplies[i].supply);
 		}
 	}
@@ -1175,7 +1175,7 @@ int wcd9xxx_i2c_write_device(u16 reg, u8 *value,
 			return ret;
 		}
 	}
-	ad_logd("write sucess register = %x val = %x\n", reg, data[1]);
+	pr_debug("write sucess register = %x val = %x\n", reg, data[1]);
 	return 0;
 }
 
@@ -1271,7 +1271,7 @@ static int wcd9xxx_i2c_probe(struct i2c_client *client,
 
 	intf_type = wcd9xxx_get_intf_type();
 
-	ad_logd("%s: interface status %d\n", __func__, intf_type);
+	pr_debug("%s: interface status %d\n", __func__, intf_type);
 	if (intf_type == WCD9XXX_INTERFACE_TYPE_SLIMBUS) {
 		dev_dbg(&client->dev, "%s:Codec is detected in slimbus mode\n",
 			__func__);
@@ -1407,7 +1407,7 @@ static int wcd9xxx_i2c_remove(struct i2c_client *client)
 {
 	struct wcd9xxx *wcd9xxx;
 	struct wcd9xxx_pdata *pdata = client->dev.platform_data;
-	ad_logd("exit\n");
+	pr_debug("exit\n");
 	wcd9xxx = dev_get_drvdata(&client->dev);
 	wcd9xxx_disable_supplies(wcd9xxx, pdata);
 	wcd9xxx_device_exit(wcd9xxx);
